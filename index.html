@@ -8818,6 +8818,7 @@ function doPost(e) {
   // src/modules/parametrage/StandaloneSection.tsx
   var import_react13 = __require("react");
   var import_jsx_runtime10 = __require("react/jsx-runtime");
+  var ONLINE_APP_URL = "https://elloodiielp.github.io/sylvaria/";
   async function getStandaloneHtml() {
     if (window.__SYLVARIA_STANDALONE_HTML__) return window.__SYLVARIA_STANDALONE_HTML__;
     for (const url of ["/domaine-sylvaria-gestion-complete.html", "/domaine_sylvaria_complet.html"]) {
@@ -8845,12 +8846,8 @@ function doPost(e) {
   var StandaloneSection = ({ onToast }) => {
     const [busy, setBusy] = (0, import_react13.useState)(false);
     const [copied, setCopied] = (0, import_react13.useState)(false);
-    const appUrl = window.location.href.split("#")[0];
-    let appLinkLabel = appUrl;
-    try {
-      appLinkLabel = decodeURI(appUrl);
-    } catch {
-    }
+    const appUrl = ONLINE_APP_URL;
+    const appLinkLabel = ONLINE_APP_URL;
     const handleOpen = () => {
       window.open(appUrl, "_blank", "noopener");
     };
@@ -8900,8 +8897,8 @@ function doPost(e) {
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "mt-3 p-3.5 rounded-xl border border-neutral-200 bg-white", children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "min-w-0", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "font-serif font-bold text-sm text-neutral-900", children: "Lien de l'application" }),
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("p", { className: "text-[11px] text-neutral-500 mt-0.5", children: "Ouvre ce m\xEAme fichier dans un nouvel onglet, avec les m\xEAmes donn\xE9es." })
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "font-serif font-bold text-sm text-neutral-900", children: "Application en ligne" }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("p", { className: "text-[11px] text-neutral-500 mt-0.5", children: "Lien \xE0 ouvrir sur le t\xE9l\xE9phone ou un autre ordinateur. \xC0 la premi\xE8re ouverture sur un appareil, r\xE9cup\xE9rez les donn\xE9es avec la synchronisation Google Sheets." })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center gap-2 shrink-0", children: [
             /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(SecondaryButton, { onClick: handleCopyLink, children: [
