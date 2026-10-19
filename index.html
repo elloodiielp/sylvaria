@@ -9636,7 +9636,7 @@ Cliquer pour modifier le tarif`,
       return day === 0 || day === 6;
     };
     const calculatePosition = (res) => {
-      const parseLocalDate2 = (dStr) => {
+      const parseLocalDate3 = (dStr) => {
         if (!dStr) return /* @__PURE__ */ new Date();
         const parts = dStr.split("-");
         if (parts.length === 3) {
@@ -9646,8 +9646,8 @@ Cliquer pour modifier le tarif`,
       };
       const monthStart = new Date(year, month, 1);
       const monthEnd = new Date(year, month, daysCount, 23, 59, 59);
-      const inDate = parseLocalDate2(res.checkIn);
-      const outDate = parseLocalDate2(res.checkOut);
+      const inDate = parseLocalDate3(res.checkIn);
+      const outDate = parseLocalDate3(res.checkOut);
       if (outDate <= monthStart || inDate > monthEnd) return null;
       const startsBeforeMonth = inDate < monthStart;
       const endsAfterMonth = outDate > monthEnd;
@@ -9862,6 +9862,14 @@ Cliquer pour modifier le tarif` : void 0,
 
   // src/components/MonthCalendarGrid.tsx
   var import_jsx_runtime15 = __require("react/jsx-runtime");
+  function parseLocalDate2(dateStr) {
+    if (!dateStr) return /* @__PURE__ */ new Date();
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+    return new Date(dateStr);
+  }
   var LEGACY_CALENDAR_LOOKS = {
     figuier: {
       booked: look("bg-slate-500 text-white border border-slate-600 hover:bg-slate-600"),
@@ -9917,8 +9925,8 @@ Cliquer pour modifier le tarif` : void 0,
     const getReservationsForDay = (day) => {
       const currentNight = new Date(year, month, day);
       return reservations.filter((r) => {
-        const inDate = new Date(r.checkIn);
-        const outDate = new Date(r.checkOut);
+        const inDate = parseLocalDate2(r.checkIn);
+        const outDate = parseLocalDate2(r.checkOut);
         return currentNight >= inDate && currentNight < outDate;
       });
     };
