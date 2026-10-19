@@ -8602,6 +8602,52 @@ function doPost(e) {
       set({ [key]: map });
     };
     const updateChecklist = (id, patch) => set({ checklists: draft.checklists.map((c) => c.id === id ? { ...c, ...patch } : c) });
+    const openChecklist = (id) => {
+      setOpenList(id);
+      setTimeout(() => {
+        try {
+          document.getElementById(`hk-list-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+        }
+      }, 60);
+    };
+    const copyChecklist = (source, name) => {
+      const stamp = Date.now().toString(36);
+      const taken = allIds();
+      const id = makeStableId(`liste_${stamp}`, taken);
+      return {
+        id,
+        name,
+        items: (source?.items || []).map((it, i) => ({ ...it, id: makeStableId(`el_${stamp}_${i}`, taken) }))
+      };
+    };
+    const USES = [
+      { key: "departureChecklistId", label: MOMENT_LOOKS.departure.label, color: MOMENT_LOOKS.departure.color },
+      { key: "arrivalChecklistId", label: MOMENT_LOOKS.arrival.label, color: MOMENT_LOOKS.arrival.color },
+      { key: "defaultChecklistId", label: "T\xE2ches manuelles et r\xE9currentes", color: "#525252" }
+    ];
+    const newChecklistFor = (key) => {
+      const current2 = draft.checklists.find((c) => c.id === draft[key]);
+      const label = USES.find((u) => u.key === key).label;
+      const created = copyChecklist(current2, `${label} (nouvelle)`);
+      set({ checklists: [...draft.checklists, created], [key]: created.id });
+      openChecklist(created.id);
+    };
+    const momentTools = (key) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex flex-wrap gap-x-3 gap-y-1 mt-1", children: [
+      draft[key] && draft.checklists.some((c) => c.id === draft[key]) && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", onClick: () => openChecklist(draft[key]), className: "text-[11px] font-semibold text-sy-325032 hover:underline cursor-pointer", children: "Modifier cette check-list" }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+        "button",
+        {
+          type: "button",
+          onClick: () => newChecklistFor(key),
+          className: "text-[11px] font-semibold text-sy-325032 hover:underline cursor-pointer flex items-center gap-0.5",
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Plus, { className: "w-3 h-3" }),
+            " Nouvelle check-list pour ce moment"
+          ]
+        }
+      )
+    ] });
     const updateRule = (id, patch) => set({ recurring: draft.recurring.map((r) => r.id === id ? { ...r, ...patch } : r) });
     const validate = () => {
       for (const kind of ["todo", "done"]) {
@@ -8637,7 +8683,10 @@ function doPost(e) {
           /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3", children: [
             /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Heure souhait\xE9e (jour du d\xE9part)", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("input", { type: "time", value: draft.auto.time, onChange: (e) => set({ auto: { ...draft.auto, time: e.target.value } }), className: timeInput }) }),
             /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Dur\xE9e estim\xE9e", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(NumberInput, { value: draft.auto.estimatedMinutes, onChange: (v) => set({ auto: { ...draft.auto, estimatedMinutes: v ?? 0 } }), suffix: "min" }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Select, { value: draft.departureChecklistId, onChange: (v) => set({ departureChecklistId: v }), options: checklistOptions }) })
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Select, { value: draft.departureChecklistId, onChange: (v) => set({ departureChecklistId: v }), options: checklistOptions }) }),
+              momentTools("departureChecklistId")
+            ] })
           ] })
         ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Block, { title: MOMENT_LOOKS.arrival.label, description: "T\xE2che cr\xE9\xE9e le jour de chaque arriv\xE9e dans un h\xE9bergement.", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "space-y-3", children: [
@@ -8704,7 +8753,10 @@ function doPost(e) {
                 suffix: "min"
               }
             ) }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Select, { value: draft.arrivalChecklistId, onChange: (v) => set({ arrivalChecklistId: v }), options: checklistOptions }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Select, { value: draft.arrivalChecklistId, onChange: (v) => set({ arrivalChecklistId: v }), options: checklistOptions }) }),
+              momentTools("arrivalChecklistId")
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Chambre rest\xE9e vide depuis", hint: "Le titre de la t\xE2che le signale", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
               NumberInput,
               {
@@ -8806,87 +8858,140 @@ function doPost(e) {
           ) }),
           /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "space-y-2", children: draft.checklists.map((c) => {
             const open = openList === c.id;
-            return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "rounded-xl border border-neutral-200", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex items-center gap-2 p-2", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => setOpenList(open ? null : c.id),
-                    className: "flex-1 text-left text-xs font-semibold text-neutral-800 cursor-pointer",
-                    children: [
-                      c.name || "Sans nom",
-                      " ",
-                      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "text-neutral-400 font-normal", children: [
-                        "\xB7 ",
-                        c.items.length,
-                        " \xE9l\xE9ment(s)"
-                      ] })
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", onClick: () => setOpenList(open ? null : c.id), className: "text-[11px] font-semibold text-sy-325032 hover:underline cursor-pointer", children: open ? "Fermer" : "Modifier" }),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-                  IconButton,
-                  {
-                    danger: true,
-                    title: "Supprimer cette check-list",
-                    disabled: draft.checklists.length <= 1,
-                    onClick: () => {
-                      if (!window.confirm(`Supprimer la check-list \xAB ${c.name} \xBB ? Les t\xE2ches qui l'utilisaient n'auront plus de check-list.`)) return;
-                      const checklists = draft.checklists.filter((x) => x.id !== c.id);
-                      set({
-                        checklists,
-                        defaultChecklistId: draft.defaultChecklistId === c.id ? checklists[0]?.id || "" : draft.defaultChecklistId,
-                        departureChecklistId: draft.departureChecklistId === c.id ? "" : draft.departureChecklistId,
-                        arrivalChecklistId: draft.arrivalChecklistId === c.id ? "" : draft.arrivalChecklistId
-                      });
-                    },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Trash2, { className: "w-3.5 h-3.5" })
-                  }
-                )
-              ] }),
-              open && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "p-2.5 pt-0 space-y-1.5", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Nom", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TextInput, { value: c.name, onChange: (v) => updateChecklist(c.id, { name: v }) }) }),
-                c.items.map((item2, idx) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex items-center gap-1", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex-1 min-w-0", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-                    TextInput,
-                    {
-                      value: item2.label,
-                      onChange: (v) => updateChecklist(c.id, { items: c.items.map((x) => x.id === item2.id ? { ...x, label: v } : x) })
-                    }
-                  ) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "w-32 shrink-0 hidden sm:block", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-                    Select,
-                    {
-                      value: item2.category,
-                      onChange: (v) => updateChecklist(c.id, { items: c.items.map((x) => x.id === item2.id ? { ...x, category: v } : x) }),
-                      options: Object.keys(CHECKLIST_CATEGORY_LABELS).map((k) => ({ value: k, label: CHECKLIST_CATEGORY_LABELS[k] }))
-                    }
-                  ) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconButton, { title: "Monter", disabled: idx === 0, onClick: () => updateChecklist(c.id, { items: move(c.items, idx, -1) }), children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ArrowUp, { className: "w-3.5 h-3.5" }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-                    IconButton,
-                    {
-                      title: "Descendre",
-                      disabled: idx === c.items.length - 1,
-                      onClick: () => updateChecklist(c.id, { items: move(c.items, idx, 1) }),
-                      children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ArrowDown, { className: "w-3.5 h-3.5" })
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconButton, { danger: true, title: "Retirer", onClick: () => updateChecklist(c.id, { items: c.items.filter((x) => x.id !== item2.id) }), children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Trash2, { className: "w-3.5 h-3.5" }) })
-                ] }, item2.id)),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-                  AddLink,
-                  {
-                    onClick: () => updateChecklist(c.id, {
-                      items: [...c.items, { id: makeStableId(`el_${Date.now().toString(36)}`, allIds()), label: "", category: "menage" }]
-                    }),
-                    children: "Ajouter un \xE9l\xE9ment"
-                  }
-                )
-              ] })
-            ] }, c.id);
+            return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+              "div",
+              {
+                id: `hk-list-${c.id}`,
+                className: `rounded-xl border scroll-mt-4 ${open ? "border-sy-325032" : "border-neutral-200"}`,
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex items-center gap-2 p-2", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => setOpenList(open ? null : c.id),
+                        className: "flex-1 text-left text-xs font-semibold text-neutral-800 cursor-pointer",
+                        children: [
+                          c.name || "Sans nom",
+                          " ",
+                          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "text-neutral-400 font-normal", children: [
+                            "\xB7 ",
+                            c.items.length,
+                            " \xE9l\xE9ment(s)"
+                          ] }),
+                          USES.some((u) => draft[u.key] === c.id) && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "flex flex-wrap gap-1 mt-1", children: USES.filter((u) => draft[u.key] === c.id).map((u) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                            "span",
+                            {
+                              className: "px-1.5 py-0.5 rounded-md text-[10px] font-bold",
+                              style: { background: `${u.color}1F`, color: u.color },
+                              children: u.label
+                            },
+                            u.key
+                          )) })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", onClick: () => setOpenList(open ? null : c.id), className: "text-[11px] font-semibold text-sy-325032 hover:underline cursor-pointer", children: open ? "Fermer" : "Modifier" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                      IconButton,
+                      {
+                        title: "Dupliquer cette check-list",
+                        onClick: () => {
+                          const created = copyChecklist(c, `${c.name} (copie)`);
+                          set({ checklists: [...draft.checklists, created] });
+                          openChecklist(created.id);
+                        },
+                        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Copy, { className: "w-3.5 h-3.5" })
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                      IconButton,
+                      {
+                        danger: true,
+                        title: "Supprimer cette check-list",
+                        disabled: draft.checklists.length <= 1,
+                        onClick: () => {
+                          if (!window.confirm(`Supprimer la check-list \xAB ${c.name} \xBB ? Les t\xE2ches qui l'utilisaient n'auront plus de check-list.`)) return;
+                          const checklists = draft.checklists.filter((x) => x.id !== c.id);
+                          set({
+                            checklists,
+                            defaultChecklistId: draft.defaultChecklistId === c.id ? checklists[0]?.id || "" : draft.defaultChecklistId,
+                            departureChecklistId: draft.departureChecklistId === c.id ? "" : draft.departureChecklistId,
+                            arrivalChecklistId: draft.arrivalChecklistId === c.id ? "" : draft.arrivalChecklistId
+                          });
+                        },
+                        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Trash2, { className: "w-3.5 h-3.5" })
+                      }
+                    )
+                  ] }),
+                  open && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "p-2.5 pt-0 space-y-1.5", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Nom", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TextInput, { value: c.name, onChange: (v) => updateChecklist(c.id, { name: v }) }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "py-1", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "block text-[11px] font-semibold text-neutral-700 mb-1", children: "Utiliser cette check-list pour" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex flex-wrap gap-1.5", children: USES.map((u) => {
+                        const used = draft[u.key] === c.id;
+                        return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: () => {
+                              if (used && u.key === "defaultChecklistId") return;
+                              set({ [u.key]: used ? "" : c.id });
+                            },
+                            className: `px-2.5 py-1.5 rounded-lg text-[11px] font-bold border cursor-pointer ${used ? "text-white border-transparent" : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"}`,
+                            style: used ? { background: u.color } : void 0,
+                            children: [
+                              used ? "\u2713 " : "",
+                              u.label
+                            ]
+                          },
+                          u.key
+                        );
+                      }) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "text-[10px] text-neutral-400 mt-1", children: "Pour toutes les chambres. Une chambre peut avoir sa propre check-list dans \xAB Espaces \xE0 entretenir \xBB." })
+                    ] }),
+                    c.items.map((item2, idx) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex items-center gap-1", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex-1 min-w-0", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                        TextInput,
+                        {
+                          value: item2.label,
+                          onChange: (v) => updateChecklist(c.id, { items: c.items.map((x) => x.id === item2.id ? { ...x, label: v } : x) })
+                        }
+                      ) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "w-32 shrink-0 hidden sm:block", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                        Select,
+                        {
+                          value: item2.category,
+                          onChange: (v) => updateChecklist(c.id, { items: c.items.map((x) => x.id === item2.id ? { ...x, category: v } : x) }),
+                          options: Object.keys(CHECKLIST_CATEGORY_LABELS).map((k) => ({ value: k, label: CHECKLIST_CATEGORY_LABELS[k] }))
+                        }
+                      ) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconButton, { title: "Monter", disabled: idx === 0, onClick: () => updateChecklist(c.id, { items: move(c.items, idx, -1) }), children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ArrowUp, { className: "w-3.5 h-3.5" }) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                        IconButton,
+                        {
+                          title: "Descendre",
+                          disabled: idx === c.items.length - 1,
+                          onClick: () => updateChecklist(c.id, { items: move(c.items, idx, 1) }),
+                          children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ArrowDown, { className: "w-3.5 h-3.5" })
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconButton, { danger: true, title: "Retirer", onClick: () => updateChecklist(c.id, { items: c.items.filter((x) => x.id !== item2.id) }), children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Trash2, { className: "w-3.5 h-3.5" }) })
+                    ] }, item2.id)),
+                    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                      AddLink,
+                      {
+                        onClick: () => updateChecklist(c.id, {
+                          items: [...c.items, { id: makeStableId(`el_${Date.now().toString(36)}`, allIds()), label: "", category: "menage" }]
+                        }),
+                        children: "Ajouter un \xE9l\xE9ment"
+                      }
+                    )
+                  ] })
+                ]
+              },
+              c.id
+            );
           }) }),
           /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
             AddLink,
@@ -9039,7 +9144,7 @@ function doPost(e) {
           }
         ) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: `${dirty ? "sticky bottom-0 z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]" : ""} bg-white -mx-4 sm:-mx-6 px-4 sm:px-6 pb-3`, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
         SaveBar,
         {
           dirty,
@@ -9054,7 +9159,7 @@ function doPost(e) {
             onToast("R\xE9glages du m\xE9nage enregistr\xE9s.");
           }
         }
-      ),
+      ) }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mt-6 p-3.5 rounded-xl border border-red-200 bg-red-50/40", children: [
         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "font-serif font-bold text-sm text-red-900", children: "Donn\xE9es du module" }),
         /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("p", { className: "text-[11px] text-neutral-600 mt-0.5", children: [
