@@ -3972,7 +3972,7 @@ var DomaineAppBundle = (() => {
   }
   function getAppsScriptCode() {
     return `// =========================================================================
-// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V8)
+// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V9)
 // =========================================================================
 // Instructions d'installation (1 minute) :
 // 1. Dans votre Google Sheet, allez dans : Extensions > Apps Script
@@ -3997,9 +3997,21 @@ var DomaineAppBundle = (() => {
 // fiches contacts, ingr\xE9dients, plats, compteurs de factures, logo. Entre PC et
 // mobile, c'est toujours la modification la plus r\xE9cente qui est gard\xE9e.
 // Les liens iCal saisis dans le Param\xE9trage sont lus par Import_iCal.gs.
+//
+// V9 : quand l'onglet cach\xE9 est vide, la lecture de secours des onglets reconna\xEEt
+// les chambres, ressources, services et plateformes d'apr\xE8s le Param\xE9trage de l'app
+// (et plus seulement Figuier, Magnolia, Piscine, Pension et les plateformes d'origine).
 // =========================================================================
 
 var APP_DATA_SHEET = "_Donn\xE9es_App";
+
+// Lignes du planning sans Param\xE9trage (identiques aux fiches d'origine)
+var SHEET_LEGACY_ROWS = [
+  { id: "figuier", name: "Chambre Figuier" },
+  { id: "magnolia", name: "Chambre Magnolia" },
+  { id: "piscine", name: "Piscine" },
+  { id: "pension", name: "Pension" }
+];
 var APP_DATA_CHUNK_SIZE = 40000; // une cellule Google Sheets accepte 50 000 caract\xE8res au maximum
 
 function getTargetSpreadsheet() {
@@ -4179,6 +4191,78 @@ function afficherDerniereErreur() {
   Logger.log(err ? err : "Aucune erreur enregistr\xE9e.");
 }
 
+function lowerText_(v) {
+  return String(v || "").toLowerCase().trim();
+}
+
+// Lignes du planning d'apr\xE8s le Param\xE9trage : h\xE9bergements, ressources, puis services
+// affich\xE9s dans le planning, chacun dans l'ordre de ses fiches (fiches d\xE9sactiv\xE9es
+// comprises : d'anciennes r\xE9servations peuvent y faire r\xE9f\xE9rence).
+function sheetRows_(settings) {
+  if (!settings || !Array.isArray(settings.accommodations)) return SHEET_LEGACY_ROWS;
+  var byOrder = function(a, b) { return (Number(a.order) || 0) - (Number(b.order) || 0); };
+  var pick = function(list, planningOnly) {
+    return (Array.isArray(list) ? list : []).filter(function(f) {
+      return f && f.id && (!planningOnly || f.showInPlanning);
+    }).sort(byOrder);
+  };
+  var rows = [].concat(pick(settings.accommodations), pick(settings.resources), pick(settings.services, true));
+  return rows.length > 0 ? rows : SHEET_LEGACY_ROWS;
+}
+
+// Colonne "Chambre" -> identifiant de la ligne. Dans l'ordre : nom ou identifiant
+// exact, identifiant puis nom contenu dans la cellule, num\xE9ro ("2", "chambre 2"),
+// sinon la premi\xE8re ligne (Figuier avec le param\xE9trage d'origine).
+function makeRoomMapper_(settings) {
+  var rows = sheetRows_(settings);
+  return function(val) {
+    var s = lowerText_(val);
+    var i;
+    if (s) {
+      for (i = 0; i < rows.length; i++) {
+        if (s === lowerText_(rows[i].id) || s === lowerText_(rows[i].name)) return rows[i].id;
+      }
+      for (i = 0; i < rows.length; i++) {
+        if (s.indexOf(lowerText_(rows[i].id)) >= 0) return rows[i].id;
+      }
+      for (i = 0; i < rows.length; i++) {
+        var name = lowerText_(rows[i].name);
+        if (name && s.indexOf(name) >= 0) return rows[i].id;
+      }
+      for (i = rows.length; i >= 1; i--) {
+        if (s === String(i) || s.indexOf("chambre " + i) >= 0) return rows[i - 1].id;
+      }
+    }
+    return rows[0].id;
+  };
+}
+
+// Colonne "Canal" -> identifiant de la plateforme. Les plateformes d'origine sont
+// reconnues comme avant, puis celles du Param\xE9trage (identifiant ou nom), sinon Direct.
+function makeSourceMapper_(settings) {
+  var platforms = (settings && Array.isArray(settings.platforms)) ? settings.platforms.filter(function(p) {
+    return p && p.id;
+  }) : [];
+  return function(val) {
+    var s = lowerText_(val);
+    if (!s) return "direct";
+    if (s.indexOf("air") >= 0) return "airbnb";
+    if (s.indexOf("book") >= 0) return "booking";
+    if (s.indexOf("abritel") >= 0) return "abritel";
+    if (s.indexOf("google") >= 0) return "google";
+    if (s.indexOf("simmy") >= 0) return "simmy";
+    var i;
+    for (i = 0; i < platforms.length; i++) {
+      if (s === lowerText_(platforms[i].id) || s === lowerText_(platforms[i].label)) return platforms[i].id;
+    }
+    for (i = 0; i < platforms.length; i++) {
+      var label = lowerText_(platforms[i].label);
+      if ((label && s.indexOf(label) >= 0) || s.indexOf(lowerText_(platforms[i].id)) >= 0) return platforms[i].id;
+    }
+    return "direct";
+  };
+}
+
 // \xC9crit un tableau dans un onglet en \xE9galisant le nombre de colonnes de chaque ligne
 // (cellules manquantes compl\xE9t\xE9es par du vide, cellules en trop ignor\xE9es).
 function writeTable_(ss, names, matrix) {
@@ -4319,28 +4403,14 @@ function doGet(e) {
           return str;
         };
 
-        var mapRoom = function(val) {
-          var s = String(val || "").toLowerCase();
-          if (s.indexOf("figuier") >= 0) return "figuier";
-          if (s.indexOf("magnolia") >= 0) return "magnolia";
-          if (s.indexOf("piscine") >= 0) return "piscine";
-          if (s.indexOf("pension") >= 0) return "pension";
-          if (s === "1" || s.indexOf("chambre 1") >= 0) return "figuier";
-          if (s === "2" || s.indexOf("chambre 2") >= 0) return "magnolia";
-          if (s === "3" || s.indexOf("chambre 3") >= 0) return "piscine";
-          if (s === "4" || s.indexOf("chambre 4") >= 0) return "pension";
-          return "figuier";
-        };
-
-        var mapSource = function(val) {
-          var s = String(val || "").toLowerCase();
-          if (s.indexOf("air") >= 0) return "airbnb";
-          if (s.indexOf("book") >= 0) return "booking";
-          if (s.indexOf("abritel") >= 0) return "abritel";
-          if (s.indexOf("google") >= 0) return "google";
-          if (s.indexOf("simmy") >= 0) return "simmy";
-          return "direct";
-        };
+        // Chambres et plateformes d'apr\xE8s le Param\xE9trage de l'app (s'il est dans l'onglet cach\xE9)
+        var appSettings = null;
+        try {
+          var settingsStore = parsedStore || loadAppData_(ss);
+          appSettings = (settingsStore && settingsStore.appStores && settingsStore.appStores.settings) || null;
+        } catch(errSettings) {}
+        var mapRoom = makeRoomMapper_(appSettings);
+        var mapSource = makeSourceMapper_(appSettings);
 
         for (var i = 1; i < rows.length; i++) {
           var r = rows[i];
