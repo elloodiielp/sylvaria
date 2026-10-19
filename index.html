@@ -679,6 +679,27 @@ var DomaineAppBundle = (() => {
     return def ? isModuleEnabled(def.id, settings) : true;
   }
 
+  // src/core/planning/kind.ts
+  var LEGACY_KINDS = {
+    figuier: "accommodation",
+    magnolia: "accommodation",
+    piscine: "resource",
+    pension: "service"
+  };
+  function rowKindOf(roomId, settings = getSettings()) {
+    const id = roomId || "";
+    const find = (key) => {
+      if (settings.accommodations.some((a) => a.id === key)) return "accommodation";
+      if (settings.resources.some((r) => r.id === key)) return "resource";
+      if (settings.services.some((s) => s.id === key)) return "service";
+      return LEGACY_KINDS[key] || null;
+    };
+    return find(id) || find(id.toLowerCase()) || "accommodation";
+  }
+  var isDayPassRow = (roomId, settings) => rowKindOf(roomId, settings) !== "accommodation";
+  var isResourceRow = (roomId, settings) => rowKindOf(roomId, settings) === "resource";
+  var isServiceRow = (roomId, settings) => rowKindOf(roomId, settings) === "service";
+
   // src/core/pricing/catalog.ts
   var LEGACY_ROOMS = {
     figuier: {
@@ -858,12 +879,14 @@ var DomaineAppBundle = (() => {
     const s = getSettings().services.find((x) => x.id === "chien_sejour");
     return s && s.active ? s.price : 0;
   }
-  function poolRates() {
-    const res = getSettings().resources.find((x) => x.id === "piscine");
+  function poolRates(resourceId = "piscine") {
+    const list = getSettings().resources;
+    const res = list.find((x) => x.id === resourceId) || list.find((x) => x.id === "piscine");
     return { hourly: res?.price ?? 10, halfDay: res?.halfDayPrice ?? 25 };
   }
-  function pensionRates() {
-    const options = getSettings().services.find((x) => x.id === "pension")?.priceOptions || [];
+  function pensionRates(serviceId = "pension") {
+    const list = getSettings().services;
+    const options = (list.find((x) => x.id === serviceId) || list.find((x) => x.id === "pension"))?.priceOptions || [];
     const price = (id, fallback) => options.find((o) => o.id === id)?.price ?? fallback;
     return {
       journee: price("journee", 15),
@@ -1092,6 +1115,11 @@ var DomaineAppBundle = (() => {
   }
   refreshRooms();
   onSettingsChanged(refreshRooms);
+  function isCountedInCapacity(id) {
+    const s = getSettings();
+    const fiche = s.accommodations.find((a) => a.id === id) || s.resources.find((r) => r.id === id) || s.services.find((x) => x.id === id);
+    return fiche ? fiche.active : true;
+  }
   var DEFAULT_VISIT_REASONS = [
     "Zoo de Beauval",
     "Etape sur la route des vacances",
@@ -1337,7 +1365,7 @@ var DomaineAppBundle = (() => {
     const roomIdClean = (r.roomId || "").toLowerCase();
     const basis = pricingBasisOf(r);
     const isOta = basis.otaSources.includes(r.bookingSource);
-    const isDayPassAllowed = roomIdClean === "piscine" || roomIdClean === "pension";
+    const isDayPassAllowed = isDayPassRow(roomIdClean);
     const nightsCount = r.nights !== void 0 ? r.nights : isDayPassAllowed ? 0 : 1;
     const roomRev = r.roomAmount ?? nightsCount * basis.nightPrice;
     const mealsRev = r.mealsAmount || 0;
@@ -1713,11 +1741,13 @@ var DomaineAppBundle = (() => {
         }
       }
     }
-    const sumDays = (map) => roomIdsList.reduce((s, id) => s + map[id], 0);
+    const capacityIds = roomIdsList.filter(isCountedInCapacity);
+    const sumDays = (map) => capacityIds.reduce((s, id) => s + map[id], 0);
     const totalNightsSold = sumRooms((a) => a.nights);
+    const occupancyNightsSold = capacityIds.reduce((s, id) => s + acc[id].nights, 0);
     const totalCapacityNights = sumDays(roomAvailableDays);
     const blockedCapacityNights = sumDays(roomBlockedDays);
-    const globalOccupancyRate = totalCapacityNights > 0 ? Math.round(totalNightsSold / totalCapacityNights * 100) : 0;
+    const globalOccupancyRate = totalCapacityNights > 0 ? Math.round(occupancyNightsSold / totalCapacityNights * 100) : 0;
     const totalWeekendNightsAvailable = sumDays(roomAvailableWeekendDays);
     const totalWeekendNightsSold = sumDays(roomBookedWeekendDays);
     const globalWeekendOccupancyRate = totalWeekendNightsAvailable > 0 ? Math.round(totalWeekendNightsSold / totalWeekendNightsAvailable * 100) : 0;
@@ -1828,6 +1858,8 @@ var DomaineAppBundle = (() => {
       totalTouristTaxPlatform: Math.round(totalTouristTaxPlatform * 100) / 100,
       touristTaxNeedsVerificationCount,
       totalNightsSold,
+      occupancyNightsSold,
+      countedRoomsCount: capacityIds.length,
       totalCapacityNights,
       blockedCapacityNights,
       globalOccupancyRate,
@@ -2427,9 +2459,10 @@ var DomaineAppBundle = (() => {
     const annualDirectMarginPercent = totalAnnualRevenue > 0 ? Math.round(totalAnnualDirectMargin / totalAnnualRevenue * 100) : 0;
     const annualGlobalMarginPercent = totalAnnualRevenue > 0 ? Math.round(totalAnnualGlobalMargin / totalAnnualRevenue * 100) : 0;
     const totalAnnualNightsSold = monthsData.reduce((acc, m) => acc + m.nightsSold, 0);
-    const totalAnnualCapacityNights = monthsData.reduce((acc, m) => acc + (m.recap.totalCapacityNights || m.recap.daysInMonth * Object.keys(m.recap.byRoom).length), 0);
+    const totalAnnualCapacityNights = monthsData.reduce((acc, m) => acc + (m.recap.totalCapacityNights || m.recap.daysInMonth * (m.recap.countedRoomsCount ?? Object.keys(m.recap.byRoom).length)), 0);
+    const totalAnnualOccupancyNights = monthsData.reduce((acc, m) => acc + (m.recap.occupancyNightsSold ?? m.nightsSold), 0);
     const blockedAnnualCapacityNights = monthsData.reduce((acc, m) => acc + (m.recap.blockedCapacityNights || 0), 0);
-    const annualOccupancyRate = totalAnnualCapacityNights > 0 ? Math.round(totalAnnualNightsSold / totalAnnualCapacityNights * 100) : 0;
+    const annualOccupancyRate = totalAnnualCapacityNights > 0 ? Math.round(totalAnnualOccupancyNights / totalAnnualCapacityNights * 100) : 0;
     const totalAnnualWeekendNightsAvailable = monthsData.reduce((acc, m) => acc + (m.recap.totalWeekendNightsAvailable || 0), 0);
     const totalAnnualWeekendNightsSold = monthsData.reduce((acc, m) => acc + (m.recap.totalWeekendNightsSold || 0), 0);
     const annualWeekendOccupancyRate = totalAnnualWeekendNightsAvailable > 0 ? Math.round(totalAnnualWeekendNightsSold / totalAnnualWeekendNightsAvailable * 100) : 0;
@@ -4605,7 +4638,8 @@ function doPost(e) {
     const resRows = [resHeaders];
     reservations.forEach((r) => {
       const room = ROOMS[r.roomId] || { name: r.roomId };
-      const category = r.roomId === "pension" ? "Pension canine" : r.roomId === "piscine" ? "Piscine" : "Chambre d'h\xF4tes";
+      const kind = Object.prototype.hasOwnProperty.call(ROOMS, r.roomId) ? rowKindOf(r.roomId) : "accommodation";
+      const category = kind === "service" ? r.roomId === "pension" ? "Pension canine" : ROOMS[r.roomId]?.name || "Service" : kind === "resource" ? ROOMS[r.roomId]?.name || "Ressource" : "Chambre d'h\xF4tes";
       const totalPers = (r.adultsCount || 0) + (r.childrenCount || 0) + (r.babiesCount || 0);
       const taxAmount = r.touristTaxAmount !== void 0 ? r.touristTaxAmount : r.touristTax || 0;
       const taxStatusLabel = r.touristTaxStatus === "prise_en_charge" ? "Prise en charge plateforme" : r.touristTaxStatus === "non_prise_en_compte" ? "Non prise en compte" : "\xC0 d\xE9clarer OT";
@@ -8972,12 +9006,6 @@ function doPost(e) {
   }
 
   // src/core/planning/rows.ts
-  var LEGACY_KINDS = {
-    figuier: "accommodation",
-    magnolia: "accommodation",
-    piscine: "resource",
-    pension: "service"
-  };
   function planningRows(settings, includeHidden = false) {
     const rows = [];
     const add = (id, kind, visible) => {
@@ -9137,7 +9165,7 @@ function doPost(e) {
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "flex flex-col text-[11px] text-neutral-600", children: [
             /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { children: [
-              recap.totalNightsSold,
+              recap.occupancyNightsSold ?? recap.totalNightsSold,
               " nuits / ",
               recap.totalCapacityNights,
               " dispo"
@@ -10957,7 +10985,7 @@ Cliquer pour modifier le tarif` : void 0,
               "%"
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("p", { className: "text-xs text-neutral-500 mt-1", children: [
-              recap.totalNightsSold,
+              recap.occupancyNightsSold ?? recap.totalNightsSold,
               " nuits occup\xE9es / ",
               recap.totalCapacityNights,
               " dispo ",
@@ -11832,6 +11860,60 @@ Cliquer pour modifier le tarif` : void 0,
       tfoot: text
     };
   }
+  var LEGACY_EXTRA_LOOKS = {
+    piscine: {
+      box: look("bg-sky-50 border-sky-200"),
+      boxLabel: look("text-sky-900"),
+      boxValue: look("text-sky-950"),
+      boxSub: look("text-sky-800"),
+      legend: look("text-sky-800"),
+      chip: look("bg-sky-500"),
+      bar: look("bg-sky-400 group-hover:bg-sky-600"),
+      badge: look("bg-sky-50/70 border-sky-200"),
+      badgeTitle: look("text-sky-800"),
+      badgeAmount: look("text-sky-950"),
+      badgeSub: look("text-sky-700"),
+      icon: look("bg-sky-100 text-sky-700"),
+      title: "Espace Piscine",
+      emoji: "\u{1F3CA}"
+    },
+    pension: {
+      box: look("bg-amber-50 border-amber-200"),
+      boxLabel: look("text-amber-900"),
+      boxValue: look("text-amber-950"),
+      boxSub: look("text-amber-800"),
+      legend: look("text-amber-900"),
+      chip: look("bg-[#C2884E]"),
+      bar: look("bg-[#C2884E] group-hover:bg-[#8C5220]"),
+      badge: look("bg-amber-50/70 border-amber-200"),
+      badgeTitle: look("text-amber-900"),
+      badgeAmount: look("text-amber-950"),
+      badgeSub: look("text-amber-800"),
+      icon: look("bg-amber-100 text-amber-800"),
+      title: "Pension Canine",
+      emoji: "\u{1F43E}"
+    }
+  };
+  function extraLook(row) {
+    if (LEGACY_EXTRA_LOOKS[row.id]) return LEGACY_EXTRA_LOOKS[row.id];
+    const p = rowPalette(row.room);
+    const soft = look("", { backgroundColor: alpha(p.soft, 0.7), borderColor: p.border });
+    const text = look("", { color: p.text });
+    return {
+      box: soft,
+      boxLabel: text,
+      boxValue: text,
+      boxSub: text,
+      legend: text,
+      chip: look("", { backgroundColor: p.accent }),
+      bar: look("opacity-80 group-hover:opacity-100", { backgroundColor: p.accent }),
+      badge: soft,
+      badgeTitle: text,
+      badgeAmount: text,
+      badgeSub: text,
+      icon: look("", { backgroundColor: p.soft, color: p.text })
+    };
+  }
   var AnnualFinancialReport = ({
     allReservations,
     selectedYear,
@@ -11856,6 +11938,7 @@ Cliquer pour modifier le tarif` : void 0,
       return calculateAnnualRecap(filteredReservations, selectedYear);
     }, [filteredReservations, selectedYear, settings]);
     const rows = statsRows(settings, (id) => !!annual.byRoom[id] && (annual.byRoom[id].nights > 0 || annual.byRoom[id].revenue !== 0)).filter((row) => annual.byRoom[row.id]);
+    const extraRows = rows.filter((row) => row.kind !== "accommodation");
     const monthRoom = (m, id) => m.byRoom?.[id] || { revenue: 0, nights: 0 };
     const maxMonthlyRevenue = (0, import_react19.useMemo)(() => {
       return Math.max(...annual.months.map((m) => m.totalRevenue), 1);
@@ -11960,25 +12043,24 @@ Cliquer pour modifier le tarif` : void 0,
           }) });
         case "piscine_pension":
           return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(import_jsx_runtime18.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "p-2 bg-sky-50 rounded-lg border border-sky-200", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-sky-900 block text-[10px] font-semibold", children: "Espace Piscine" }),
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "font-bold font-mono text-sky-950", children: formatCurrency(m.piscineRevenue || 0) }),
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: "text-[10px] text-sky-800 block", children: [
-                m.piscineNights || 0,
-                " cr\xE9neaux"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "p-2 bg-amber-50 rounded-lg border border-amber-200", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-amber-900 block text-[10px] font-semibold", children: "Pension Canine" }),
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "font-bold font-mono text-amber-950", children: formatCurrency(m.pensionRevenue || 0) }),
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: "text-[10px] text-amber-800 block", children: [
-                m.pensionNights || 0,
-                " nuits"
-              ] })
-            ] }),
+            extraRows.map((row) => {
+              const X2 = extraLook(row);
+              return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: `p-2 ${X2.box.c} rounded-lg border`, style: X2.box.s, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: `${X2.boxLabel.c} block text-[10px] font-semibold`, style: X2.boxLabel.s, children: X2.title ?? row.room.name }),
+                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: `font-bold font-mono ${X2.boxValue.c}`, style: X2.boxValue.s, children: formatCurrency(monthRoom(m, row.id).revenue || 0) }),
+                /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: `text-[10px] ${X2.boxSub.c} block`, style: X2.boxSub.s, children: [
+                  monthRoom(m, row.id).nights || 0,
+                  " ",
+                  rowUnits(row.kind).nights
+                ] })
+              ] }, row.id);
+            }),
             /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "p-2 bg-neutral-100 rounded-lg border border-neutral-300", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-neutral-800 block text-[10px] font-semibold", children: "Total Piscine + Pension" }),
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "font-bold font-mono text-neutral-950", children: formatCurrency((m.piscineRevenue || 0) + (m.pensionRevenue || 0)) })
+              /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: "text-neutral-800 block text-[10px] font-semibold", children: [
+                "Total ",
+                extraRows.map(shortName).join(" + ")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "font-bold font-mono text-neutral-950", children: formatCurrency(extraRows.reduce((sum, row) => sum + (monthRoom(m, row.id).revenue || 0), 0)) })
             ] })
           ] });
         case "amount_decomp":
@@ -12465,12 +12547,15 @@ Cliquer pour modifier le tarif` : void 0,
                 children: "Figuier vs Magnolia"
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+            extraRows.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
               "button",
               {
                 onClick: () => setChartMode("piscine_pension"),
                 className: `px-3 py-1.5 rounded-lg transition-all cursor-pointer ${chartMode === "piscine_pension" ? "bg-white text-neutral-900 shadow-xs font-semibold" : "text-neutral-600 hover:text-neutral-900"}`,
-                children: "Revenus Piscine & Pension"
+                children: [
+                  "Revenus ",
+                  extraRows.map(shortName).join(" & ")
+                ]
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
@@ -12749,30 +12834,26 @@ Cliquer pour modifier le tarif` : void 0,
           ] }),
           chartMode === "piscine_pension" && /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "space-y-4", children: [
             /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "flex flex-wrap items-center justify-between text-xs text-neutral-500 gap-2", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "flex flex-wrap items-center gap-4", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: "flex items-center gap-1.5 font-semibold text-sky-800", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "w-3 h-3 rounded-sm bg-sky-500" }),
-                  "Piscine (",
-                  formatCurrency(annual.byRoom.piscine.revenue),
+              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "flex flex-wrap items-center gap-4", children: extraRows.map((row) => {
+                const X2 = extraLook(row);
+                return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: `flex items-center gap-1.5 font-semibold ${X2.legend.c}`, style: X2.legend.s, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: `w-3 h-3 rounded-sm ${X2.chip.c}`, style: X2.chip.s }),
+                  row.room.name,
+                  " (",
+                  formatCurrency(annual.byRoom[row.id].revenue),
                   ")"
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: "flex items-center gap-1.5 font-semibold text-amber-900", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "w-3 h-3 rounded-sm bg-[#C2884E]" }),
-                  "Pension (",
-                  formatCurrency(annual.byRoom.pension.revenue),
-                  ")"
-                ] })
-              ] }),
+                ] }, row.id);
+              }) }),
               /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { children: [
-                "Total Piscine + Pension : ",
-                formatCurrency(annual.byRoom.piscine.revenue + annual.byRoom.pension.revenue)
+                "Total ",
+                extraRows.map(shortName).join(" + "),
+                " : ",
+                formatCurrency(extraRows.reduce((sum, row) => sum + annual.byRoom[row.id].revenue, 0))
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "w-full overflow-x-auto pb-1", children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "grid grid-cols-12 gap-1 sm:gap-2 min-w-[560px] sm:min-w-0 h-56 items-end pt-8 pb-2 px-1 border-b border-neutral-100", children: annual.months.map((m) => {
-              const maxPisPen = Math.max(...annual.months.map((mo) => Math.max(mo.piscineRevenue || 0, mo.pensionRevenue || 0)), 1);
-              const pisH = (m.piscineRevenue || 0) / maxPisPen * 100;
-              const penH = (m.pensionRevenue || 0) / maxPisPen * 100;
-              const totalPisPen = (m.piscineRevenue || 0) + (m.pensionRevenue || 0);
+              const maxExtra = Math.max(...annual.months.map((mo) => Math.max(...extraRows.map((row) => monthRoom(mo, row.id).revenue || 0))), 1);
+              const totalExtra = extraRows.reduce((sum, row) => sum + (monthRoom(m, row.id).revenue || 0), 0);
               const isSelected = selectedMonthIndexForLegend === m.monthIndex;
               return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(
                 "div",
@@ -12782,59 +12863,44 @@ Cliquer pour modifier le tarif` : void 0,
                   },
                   className: `flex flex-col items-center h-full justify-end group cursor-pointer transition-all rounded-lg p-0.5 ${isSelected ? "bg-sky-50 ring-2 ring-sky-500" : ""}`,
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "text-[8px] sm:text-[10px] font-mono font-bold text-neutral-700 mb-1 truncate max-w-full text-center leading-none", children: totalPisPen > 0 ? `${Math.round(totalPisPen)}\u20AC` : "0\u20AC" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "flex items-end gap-1 w-full justify-center h-36 sm:h-40", children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "text-[8px] sm:text-[10px] font-mono font-bold text-neutral-700 mb-1 truncate max-w-full text-center leading-none", children: totalExtra > 0 ? `${Math.round(totalExtra)}\u20AC` : "0\u20AC" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "flex items-end gap-1 w-full justify-center h-36 sm:h-40", children: extraRows.map((row) => {
+                      const value = monthRoom(m, row.id).revenue || 0;
+                      const h = value / maxExtra * 100;
+                      return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
                         "div",
                         {
-                          className: "w-3 bg-sky-400 group-hover:bg-sky-600 rounded-t-xs transition-all",
-                          style: { height: `${Math.max(4, pisH * 0.88)}%` },
-                          title: `Piscine ${m.monthName} : ${formatCurrency(m.piscineRevenue || 0)}`
-                        }
-                      ),
-                      /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
-                        "div",
-                        {
-                          className: "w-3 bg-[#C2884E] group-hover:bg-[#8C5220] rounded-t-xs transition-all",
-                          style: { height: `${Math.max(4, penH * 0.88)}%` },
-                          title: `Pension ${m.monthName} : ${formatCurrency(m.pensionRevenue || 0)}`
-                        }
-                      )
-                    ] }),
+                          className: `w-3 ${extraLook(row).bar.c} rounded-t-xs transition-all`,
+                          style: { height: `${Math.max(4, h * 0.88)}%`, ...extraLook(row).bar.s },
+                          title: `${shortName(row)} ${m.monthName} : ${formatCurrency(value)}`
+                        },
+                        row.id
+                      );
+                    }) }),
                     /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-[10px] sm:text-[11px] font-medium text-neutral-600 mt-2 group-hover:text-neutral-900 truncate", children: m.monthName.substring(0, 3) })
                   ]
                 },
                 m.monthIndex
               );
             }) }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "bg-sky-50/70 p-4 rounded-xl border border-sky-200 flex items-center justify-between", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2", children: extraRows.map((row) => {
+              const X2 = extraLook(row);
+              const y = annual.byRoom[row.id];
+              return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: `${X2.badge.c} p-4 rounded-xl border flex items-center justify-between`, style: X2.badge.s, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-xs font-semibold text-sky-800 uppercase tracking-wider block mb-1", children: "Espace Piscine" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-2xl font-serif font-bold text-sky-950 block", children: formatCurrency(annual.byRoom.piscine.revenue) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: "text-xs text-sky-700 mt-1 block", children: [
-                    annual.byRoom.piscine.staysCount,
+                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: `text-xs font-semibold ${X2.badgeTitle.c} uppercase tracking-wider block mb-1`, style: X2.badgeTitle.s, children: X2.title ?? row.room.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: `text-2xl font-serif font-bold ${X2.badgeAmount.c} block`, style: X2.badgeAmount.s, children: formatCurrency(y.revenue) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: `text-xs ${X2.badgeSub.c} mt-1 block`, style: X2.badgeSub.s, children: [
+                    y.staysCount,
                     " r\xE9servations \u2022 ",
-                    annual.byRoom.piscine.nights,
-                    " cr\xE9neaux"
+                    y.nights,
+                    " ",
+                    row.kind === "resource" ? "cr\xE9neaux" : "nuit\xE9es"
                   ] })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-lg", children: "\u{1F3CA}" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "bg-amber-50/70 p-4 rounded-xl border border-amber-200 flex items-center justify-between", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-xs font-semibold text-amber-900 uppercase tracking-wider block mb-1", children: "Pension Canine" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "text-2xl font-serif font-bold text-amber-950 block", children: formatCurrency(annual.byRoom.pension.revenue) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("span", { className: "text-xs text-amber-800 mt-1 block", children: [
-                    annual.byRoom.pension.staysCount,
-                    " r\xE9servations \u2022 ",
-                    annual.byRoom.pension.nights,
-                    " nuit\xE9es"
-                  ] })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: "w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 font-bold text-lg", children: "\u{1F43E}" })
-              ] })
-            ] })
+                /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { className: `w-10 h-10 rounded-full ${X2.icon.c} flex items-center justify-center font-bold text-lg`, style: X2.icon.s, children: X2.emoji ?? "\u2022" })
+              ] }, row.id);
+            }) })
           ] }),
           chartMode === "amount_decomp" && /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "space-y-4", children: [
             /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "flex flex-wrap items-center justify-between text-xs text-neutral-500 gap-2", children: [
@@ -19019,6 +19085,21 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
 
   // src/components/ReservationModal.tsx
   var import_jsx_runtime31 = __require("react/jsx-runtime");
+  var LEGACY_CARD_LOOKS = {
+    figuier: { selected: look("border-slate-400 bg-slate-50 ring-2 ring-slate-400/25 shadow-xs"), dot: look("bg-slate-400"), text: look("text-slate-700"), tagline: "terrasse verger" },
+    magnolia: { selected: look("border-sy-325032 bg-sy-fafbf9 ring-2 ring-sy-325032/25 shadow-xs"), dot: look("bg-sy-325032"), text: look("text-sy-325032"), tagline: "suite parc" },
+    piscine: { selected: look("border-sky-400 bg-sky-50 ring-2 ring-sky-400/25 shadow-xs"), dot: look("bg-sky-400"), text: look("text-sky-700"), tagline: "espace d\xE9tente" },
+    pension: { selected: look("border-[#C2884E] bg-[#FBF7F2] ring-2 ring-[#C2884E]/25 shadow-xs"), dot: look("bg-[#C2884E]"), text: look("text-[#8C5220]"), tagline: "h\xE9bergement" }
+  };
+  function cardLook(row) {
+    if (LEGACY_CARD_LOOKS[row.id]) return LEGACY_CARD_LOOKS[row.id];
+    const p = rowPalette(row.room);
+    return {
+      selected: look("shadow-xs", { borderColor: p.accent, backgroundColor: alpha(p.soft, 0.6), boxShadow: `0 0 0 2px ${alpha(p.accent, 0.25)}` }),
+      dot: look("", { backgroundColor: p.accent }),
+      text: look("", { color: p.text })
+    };
+  }
   var euro2 = (n, suffix = " \u20AC") => `${String(Math.round(n * 100) / 100).replace(".", ",")}${suffix}`;
   var ReservationModal = ({
     isOpen,
@@ -19037,8 +19118,10 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
     const costRates = (0, import_react31.useMemo)(() => pricingBasisOf(initialData || { roomId }), [initialData, roomId, settings]);
     const childExtra = ROOMS[roomId]?.extraGuestPrice || 0;
     const dogPrice = dogSupplementPrice();
-    const poolDefaults = poolRates();
-    const pension = pensionRates();
+    const poolDefaults = poolRates(roomId);
+    const pension = pensionRates(roomId);
+    const rowName = ROOMS[roomId]?.name || "";
+    const rowNameLc = rowName.toLowerCase();
     const longStayRules = [...settings.pricing.longStayDiscounts].sort((a, b) => a.minNights - b.minNights);
     const [isBlocked, setIsBlocked] = (0, import_react31.useState)(false);
     const [blockedRoomIds, setBlockedRoomIds] = (0, import_react31.useState)([defaultRoomId]);
@@ -19063,6 +19146,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
     const isRoomSelected = (rId) => {
       return isBlocked ? blockedRoomIds.includes(rId) : roomId === rId;
     };
+    const cardRows = planningRows(settings, true).filter((row) => row.visible || row.id === roomId || blockedRoomIds.includes(row.id));
     const [guestResidence, setGuestResidence] = (0, import_react31.useState)("");
     const [visitReason, setVisitReason] = (0, import_react31.useState)("");
     const [customVisitReason, setCustomVisitReason] = (0, import_react31.useState)("");
@@ -19152,7 +19236,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
       }
     };
     const handleNightsChange = (newNights) => {
-      const isDayPassAllowed = roomId === "piscine" || roomId === "pension";
+      const isDayPassAllowed = isDayPassRow(roomId);
       const safeNights = Math.max(isDayPassAllowed ? 0 : 1, newNights);
       setRoomCostStr((safeNights * costRates.roomCostPerNight).toString());
       const poolVal = safeNights * costRates.poolCostPerNight;
@@ -19275,7 +19359,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         const showDrinks = !isOfficialVersion || declDrinks;
         const showDogCare = !isOfficialVersion || declDogCare;
         const showOther = !isOfficialVersion || declOther;
-        setRoomAmountStr(showRoom && initialData.roomAmount !== void 0 && initialData.roomAmount !== 0 ? formatAmountForInput(initialData.roomAmount) : initialData.roomId === "piscine" && showRoom ? String(poolRates().hourly) : "");
+        setRoomAmountStr(showRoom && initialData.roomAmount !== void 0 && initialData.roomAmount !== 0 ? formatAmountForInput(initialData.roomAmount) : isResourceRow(initialData.roomId) && showRoom ? String(poolRates(initialData.roomId).hourly) : "");
         setCommissionAmountStr(showRoom && initialData.commissionAmount ? formatAmountForInput(initialData.commissionAmount) : "");
         setDiscountPercent(initialData.discountPercent || 0);
         setMealsAmountStr(showMeals && initialData.mealsAmount ? formatAmountForInput(initialData.mealsAmount) : "");
@@ -19287,7 +19371,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         setBreakfastCostStr(initialData.breakfastCost ? formatAmountForInput(initialData.breakfastCost) : "");
         setMealsCostStr(showMeals && initialData.mealsCost ? formatAmountForInput(initialData.mealsCost) : "");
         setDrinksCostStr(showDrinks && initialData.drinksCost ? formatAmountForInput(initialData.drinksCost) : "");
-        const isDayPass = initialData.roomId === "piscine" || initialData.roomId === "pension";
+        const isDayPass = isDayPassRow(initialData.roomId);
         const initialBasis = pricingBasisOf(initialData);
         const defaultRoomCost = showRoom && initialData.roomCost !== void 0 ? formatAmountForInput(initialData.roomCost) : isDayPass || !showRoom ? "0" : formatAmountForInput(initialData.nights * initialBasis.roomCostPerNight);
         setRoomCostStr(defaultRoomCost);
@@ -19328,7 +19412,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         setTouristTaxStatus(initialData.touristTaxStatus || "a_declarer");
       } else {
         const currentRoom = defaultRoomId;
-        const isDayPass = currentRoom === "piscine" || currentRoom === "pension";
+        const isDayPass = isDayPassRow(currentRoom);
         setRoomId(currentRoom);
         setIsBlocked(false);
         setGuestName("");
@@ -19353,9 +19437,9 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         setMediumDogsCount(0);
         setSmallDogsCount(0);
         setPiscinePricingMode("hourly");
-        setPiscineHourlyRate(String(poolRates().hourly));
+        setPiscineHourlyRate(String(poolRates(currentRoom).hourly));
         setPiscineHours(1);
-        setPiscineHalfDayRate(String(poolRates().halfDay));
+        setPiscineHalfDayRate(String(poolRates(currentRoom).halfDay));
         setPensionJournees(1);
         setPensionPetitesJournees(0);
         setPensionDemieJournees(0);
@@ -19438,7 +19522,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
     };
     const handleRoomChange = (newRoomId) => {
       setRoomId(newRoomId);
-      const isDayPass = newRoomId === "piscine" || newRoomId === "pension";
+      const isDayPass = isDayPassRow(newRoomId);
       if (isDayPass) {
         setCheckOut(checkIn);
         setRoomCostStr("0");
@@ -19448,20 +19532,18 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         setRoomCostStr(String(costRates.roomCostPerNight));
         setPoolCostStr(String(costRates.poolCostPerNight));
       }
-      if (newRoomId === "piscine") {
-        setBookingSource("simmy");
-        if (!roomAmountStr && pricingEnabled) setRoomAmountStr(String(poolDefaults.hourly));
+      if (isResourceRow(newRoomId)) {
+        if (newRoomId === "piscine") setBookingSource("simmy");
+        if (!roomAmountStr && pricingEnabled) setRoomAmountStr(String(poolRates(newRoomId).hourly));
       }
       let newAdults = adultsCount;
-      if (newRoomId === "magnolia" && adultsCount > 2) {
-        newAdults = 2;
-        setAdultsCount(2);
-      } else if (newRoomId === "figuier" && adultsCount < 2) {
-        newAdults = 2;
-        setAdultsCount(2);
-      } else if (newRoomId === "pension" && adultsCount > 4) {
-        newAdults = 4;
-        setAdultsCount(4);
+      const target = ROOMS[newRoomId];
+      if (target) {
+        const clamped = Math.min(target.maxAdults, Math.max(target.minAdults, adultsCount));
+        if (clamped !== adultsCount) {
+          newAdults = clamped;
+          setAdultsCount(clamped);
+        }
       }
       const sim = simulateTariff(newRoomId, isDayPass ? 0 : Math.max(1, nights), newAdults, childrenCount, dogsCount);
       if (pricingEnabled && !isTotalManuallyModified) {
@@ -19577,7 +19659,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         setErrorMsg("Veuillez renseigner les dates d'arriv\xE9e et de d\xE9part.");
         return;
       }
-      const isDayPassAllowed = roomId === "piscine" || roomId === "pension";
+      const isDayPassAllowed = isDayPassRow(roomId);
       if (!isDayPassAllowed && nights <= 0) {
         setErrorMsg("La date de d\xE9part doit \xEAtre strictly post\xE9rieure \xE0 la date d'arriv\xE9e.");
         return;
@@ -19586,11 +19668,11 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         setErrorMsg("Le nombre de nuits ne peut pas \xEAtre n\xE9gatif.");
         return;
       }
-      if (!isBlocked && roomId !== "pension" && adultsCount <= 0) {
+      if (!isBlocked && !isServiceRow(roomId) && adultsCount <= 0) {
         setErrorMsg("Il doit y avoir au moins 1 adulte pour la r\xE9servation.");
         return;
       }
-      if (!isBlocked && roomId === "pension" && largeDogsCount + mediumDogsCount + smallDogsCount <= 0) {
+      if (!isBlocked && isServiceRow(roomId) && largeDogsCount + mediumDogsCount + smallDogsCount <= 0) {
         setErrorMsg("Veuillez indiquer au moins 1 chien pour la r\xE9servation en pension.");
         return;
       }
@@ -19640,14 +19722,14 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         checkIn,
         checkOut,
         nights,
-        adultsCount: isBlocked ? 0 : roomId === "pension" ? 0 : adultsCount,
-        childrenCount: isBlocked ? 0 : roomId === "pension" ? 0 : childrenCount,
-        babiesCount: isBlocked ? 0 : roomId === "pension" ? 0 : babiesCount,
-        dogsCount: isBlocked ? 0 : roomId === "pension" ? totalPensionDogsCount : dogsCount,
-        largeDogsCount: isBlocked || roomId !== "pension" ? void 0 : largeDogsCount,
-        mediumDogsCount: isBlocked || roomId !== "pension" ? void 0 : mediumDogsCount,
-        smallDogsCount: isBlocked || roomId !== "pension" ? void 0 : smallDogsCount,
-        guestsCount: isBlocked ? 0 : roomId === "pension" ? 0 : totalGuests,
+        adultsCount: isBlocked ? 0 : isServiceRow(roomId) ? 0 : adultsCount,
+        childrenCount: isBlocked ? 0 : isServiceRow(roomId) ? 0 : childrenCount,
+        babiesCount: isBlocked ? 0 : isServiceRow(roomId) ? 0 : babiesCount,
+        dogsCount: isBlocked ? 0 : isServiceRow(roomId) ? totalPensionDogsCount : dogsCount,
+        largeDogsCount: isBlocked || !isServiceRow(roomId) ? void 0 : largeDogsCount,
+        mediumDogsCount: isBlocked || !isServiceRow(roomId) ? void 0 : mediumDogsCount,
+        smallDogsCount: isBlocked || !isServiceRow(roomId) ? void 0 : smallDogsCount,
+        guestsCount: isBlocked ? 0 : isServiceRow(roomId) ? 0 : totalGuests,
         bookingSource,
         bookingSourceDetails: bookingSource === "autre" ? bookingSourceDetails.trim() : void 0,
         clientOriginType,
@@ -19775,129 +19857,59 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                   blockedRoomIds.length > 1 ? "s" : ""
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3", children: cardRows.map((row) => {
+                const L = cardLook(row);
+                const room = row.room;
+                const selected = isRoomSelected(row.id);
+                return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
                   "button",
                   {
                     type: "button",
-                    onClick: () => handleRoomCardClick("figuier"),
-                    className: `p-3 rounded-xl border text-left transition-all cursor-pointer ${isRoomSelected("figuier") ? "border-slate-400 bg-slate-50 ring-2 ring-slate-400/25 shadow-xs" : "border-neutral-200 hover:border-neutral-300 bg-white"}`,
+                    onClick: () => handleRoomCardClick(row.id),
+                    className: `p-3 rounded-xl border text-left transition-all cursor-pointer ${selected ? L.selected.c : "border-neutral-200 hover:border-neutral-300 bg-white"}`,
+                    style: selected ? L.selected.s : void 0,
                     children: [
                       /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between", children: [
                         /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "font-serif font-bold text-sm text-neutral-900 flex items-center gap-1.5", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "w-2.5 h-2.5 rounded-full bg-slate-400" }),
-                          ROOMS.figuier.name
+                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: `w-2.5 h-2.5 rounded-full ${L.dot.c}`, style: L.dot.s }),
+                          room.name
                         ] }),
-                        isRoomSelected("figuier") && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Check, { className: "w-4 h-4 text-slate-700" })
+                        selected && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Check, { className: `w-4 h-4 ${L.text.c}`, style: L.text.s })
                       ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "text-[11px] font-semibold text-slate-700 mt-0.5", children: [
-                        euro2(ROOMS.figuier.basePrice),
+                      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("div", { className: `text-[11px] font-semibold ${L.text.c} mt-0.5`, style: L.text.s, children: row.kind === "accommodation" ? /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
+                        euro2(room.basePrice),
                         " / nuit",
-                        ROOMS.figuier.extraGuestPrice > 0 && /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
+                        room.extraGuestPrice > 0 && /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
                           " ",
                           /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "font-normal text-neutral-500", children: [
                             "(",
-                            ROOMS.figuier.baseGuestsCount,
+                            room.baseGuestsCount,
                             " pers. + ",
-                            euro2(ROOMS.figuier.extraGuestPrice, ""),
+                            euro2(room.extraGuestPrice, ""),
                             "\u20AC/sup)"
                           ] })
                         ] })
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("p", { className: "text-[11px] text-neutral-500 mt-1", children: [
-                        ROOMS.figuier.capacity,
-                        " \xB7 terrasse verger"
-                      ] })
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => handleRoomCardClick("magnolia"),
-                    className: `p-3 rounded-xl border text-left transition-all cursor-pointer ${isRoomSelected("magnolia") ? "border-sy-325032 bg-sy-fafbf9 ring-2 ring-sy-325032/25 shadow-xs" : "border-neutral-200 hover:border-neutral-300 bg-white"}`,
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "font-serif font-bold text-sm text-neutral-900 flex items-center gap-1.5", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "w-2.5 h-2.5 rounded-full bg-sy-325032" }),
-                          ROOMS.magnolia.name
-                        ] }),
-                        isRoomSelected("magnolia") && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Check, { className: "w-4 h-4 text-sy-325032" })
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "text-[11px] font-semibold text-sy-325032 mt-0.5", children: [
-                        euro2(ROOMS.magnolia.basePrice),
-                        " / nuit",
-                        ROOMS.magnolia.extraGuestPrice > 0 && /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
-                          " ",
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "font-normal text-neutral-500", children: [
-                            "(",
-                            ROOMS.magnolia.baseGuestsCount,
-                            " pers. + ",
-                            euro2(ROOMS.magnolia.extraGuestPrice, ""),
-                            "\u20AC/sup)"
-                          ] })
-                        ] })
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("p", { className: "text-[11px] text-neutral-500 mt-1", children: [
-                        ROOMS.magnolia.capacity,
-                        " \xB7 suite parc"
-                      ] })
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => handleRoomCardClick("piscine"),
-                    className: `p-3 rounded-xl border text-left transition-all cursor-pointer ${isRoomSelected("piscine") ? "border-sky-400 bg-sky-50 ring-2 ring-sky-400/25 shadow-xs" : "border-neutral-200 hover:border-neutral-300 bg-white"}`,
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "font-serif font-bold text-sm text-neutral-900 flex items-center gap-1.5", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "w-2.5 h-2.5 rounded-full bg-sky-400" }),
-                          ROOMS.piscine.name
-                        ] }),
-                        isRoomSelected("piscine") && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Check, { className: "w-4 h-4 text-sky-700" })
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "text-[11px] font-semibold text-sky-700 mt-0.5", children: [
-                        euro2(ROOMS.piscine.basePrice),
-                        " / cr\xE9neau"
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("p", { className: "text-[11px] text-neutral-500 mt-1", children: [
-                        ROOMS.piscine.capacity,
-                        " \xB7 espace d\xE9tente"
-                      ] })
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => handleRoomCardClick("pension"),
-                    className: `p-3 rounded-xl border text-left transition-all cursor-pointer ${isRoomSelected("pension") ? "border-[#C2884E] bg-[#FBF7F2] ring-2 ring-[#C2884E]/25 shadow-xs" : "border-neutral-200 hover:border-neutral-300 bg-white"}`,
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "font-serif font-bold text-sm text-neutral-900 flex items-center gap-1.5", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "w-2.5 h-2.5 rounded-full bg-[#C2884E]" }),
-                          ROOMS.pension.name
-                        ] }),
-                        isRoomSelected("pension") && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Check, { className: "w-4 h-4 text-[#8C5220]" })
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "text-[11px] font-semibold text-[#8C5220] mt-0.5", children: [
-                        euro2(ROOMS.pension.basePrice),
+                      ] }) : row.kind === "resource" ? /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
+                        euro2(room.basePrice),
+                        " / ",
+                        priceUnit(row, settings)
+                      ] }) : /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
+                        euro2(room.basePrice),
                         " / nuit ",
                         /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "font-normal text-neutral-500", children: "(1 pensionnaire)" })
-                      ] }),
+                      ] }) }),
                       /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("p", { className: "text-[11px] text-neutral-500 mt-1", children: [
-                        ROOMS.pension.capacity,
-                        " \xB7 h\xE9bergement"
+                        room.capacity,
+                        L.tagline ? /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
+                          " \xB7 ",
+                          L.tagline
+                        ] }) : null
                       ] })
                     ]
-                  }
-                )
-              ] })
+                  },
+                  row.id
+                );
+              }) })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3", children: [
               /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
@@ -20017,14 +20029,14 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
               /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("label", { className: "block text-xs font-semibold text-neutral-700 mb-1 flex items-center justify-between", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: "Nuit\xE9es" }),
-                  roomId === "piscine" || roomId === "pension" ? /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200", children: "Pass journ\xE9e (0 nuit)" }) : /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-neutral-400 font-normal", children: "Calcul auto/manuel" })
+                  isDayPassRow(roomId) ? /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200", children: "Pass journ\xE9e (0 nuit)" }) : /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-neutral-400 font-normal", children: "Calcul auto/manuel" })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center gap-1", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
                     "button",
                     {
                       type: "button",
-                      onClick: () => handleNightsChange(roomId === "piscine" || roomId === "pension" ? Math.max(0, nights - 1) : Math.max(1, nights - 1)),
+                      onClick: () => handleNightsChange(isDayPassRow(roomId) ? Math.max(0, nights - 1) : Math.max(1, nights - 1)),
                       className: "px-2.5 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg text-xs font-bold cursor-pointer transition-colors",
                       title: "Diminuer",
                       children: "-"
@@ -20034,7 +20046,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                     "input",
                     {
                       type: "number",
-                      min: roomId === "piscine" || roomId === "pension" ? 0 : 1,
+                      min: isDayPassRow(roomId) ? 0 : 1,
                       value: nights,
                       onChange: (e) => handleNightsChange(parseInt(e.target.value, 10) || 0),
                       className: "w-full py-2 px-2 text-center text-xs font-bold font-mono bg-white border border-neutral-300 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-sy-325032"
@@ -20180,11 +20192,11 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
               /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "text-xs font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-1.5", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Users, { className: "w-3.5 h-3.5 text-sy-325032" }),
-                  roomId === "pension" ? "Composition des pensionnaires" : "Composition des voyageurs"
+                  isServiceRow(roomId) ? "Composition des pensionnaires" : "Composition des voyageurs"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-xs font-medium text-neutral-600 font-mono tabular-nums", children: roomId === "pension" ? `\u{1F43E} Total chiens : ${totalPensionDogs}` : `Total humains : ${totalGuests} ${dogsCount > 0 ? `\xB7 \u{1F43E} ${dogsCount} chien${dogsCount > 1 ? "s" : ""}` : ""}` })
+                /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-xs font-medium text-neutral-600 font-mono tabular-nums", children: isServiceRow(roomId) ? `\u{1F43E} Total chiens : ${totalPensionDogs}` : `Total humains : ${totalGuests} ${dogsCount > 0 ? `\xB7 \u{1F43E} ${dogsCount} chien${dogsCount > 1 ? "s" : ""}` : ""}` })
               ] }),
-              roomId === "pension" ? /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1", children: [
+              isServiceRow(roomId) ? /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("label", { className: "block text-[11px] font-semibold text-neutral-700 mb-1 flex items-center gap-1", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Dog, { className: "w-3.5 h-3.5 text-amber-700" }),
@@ -20272,7 +20284,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                       children: roomId === "magnolia" ? /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
                         /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("option", { value: 1, children: "1 adulte" }),
                         /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("option", { value: 2, children: "2 adultes (max)" })
-                      ] }) : roomId === "piscine" ? /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(import_jsx_runtime31.Fragment, { children: Array.from({ length: 12 }).map((_, i) => /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("option", { value: i + 1, children: [
+                      ] }) : isResourceRow(roomId) ? /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(import_jsx_runtime31.Fragment, { children: Array.from({ length: 12 }).map((_, i) => /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("option", { value: i + 1, children: [
                         i + 1,
                         " personne",
                         i > 0 ? "s" : "",
@@ -20397,13 +20409,14 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                 ] })
               ] })
             ] }),
-            !pricingEnabled ? null : roomId === "piscine" ? (
+            !pricingEnabled ? null : isResourceRow(roomId) ? (
               /* Calculateur Tarif Piscine */
               /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "p-3.5 rounded-xl bg-cyan-50/70 border border-cyan-200/90 space-y-2.5", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "text-xs font-bold text-cyan-950 uppercase tracking-wider flex items-center gap-1.5", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Waves, { className: "w-4 h-4 text-cyan-700" }),
-                    "Calculateur de tarif piscine"
+                    "Calculateur de tarif ",
+                    rowNameLc
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "text-[11px] text-cyan-800 font-mono font-medium", children: [
                     piscineVoyageurs,
@@ -20537,7 +20550,11 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-neutral-100", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-neutral-500 block", children: "Tarif piscine calcul\xE9 :" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "text-[10px] text-neutral-500 block", children: [
+                        "Tarif ",
+                        rowNameLc,
+                        " calcul\xE9 :"
+                      ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-base font-bold font-mono text-cyan-900 tabular-nums", children: formatCurrency(calculatedPiscineTotal) })
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
@@ -20548,14 +20565,14 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                         className: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-cyan-700 hover:bg-cyan-800 rounded-lg transition-colors cursor-pointer shadow-xs",
                         children: [
                           /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Sparkles, { className: "w-3.5 h-3.5" }),
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: roomId === "piscine" ? "Appliquer au montant location piscine" : "Appliquer au montant piscine" })
+                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: `Appliquer au montant location ${rowNameLc}` })
                         ]
                       }
                     )
                   ] })
                 ] })
               ] })
-            ) : roomId === "pension" ? (
+            ) : isServiceRow(roomId) ? (
               /* Calculateur Pension Canine */
               /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/90 space-y-2.5", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between", children: [
@@ -20667,7 +20684,11 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-neutral-100", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-neutral-500 block", children: "Tarif pension calcul\xE9 :" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "text-[10px] text-neutral-500 block", children: [
+                        "Tarif ",
+                        rowNameLc,
+                        " calcul\xE9 :"
+                      ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-base font-bold font-mono text-amber-900 tabular-nums", children: formatCurrency(calculatedPensionTotal) })
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
@@ -20678,7 +20699,10 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                         className: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-800 hover:bg-amber-900 rounded-lg transition-colors cursor-pointer shadow-xs",
                         children: [
                           /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Sparkles, { className: "w-3.5 h-3.5" }),
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: "Appliquer au montant pension" })
+                          /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { children: [
+                            "Appliquer au montant ",
+                            rowNameLc
+                          ] })
                         ]
                       }
                     )
@@ -20835,7 +20859,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-neutral-100", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-neutral-500 block", children: roomId === "piscine" ? "Tarif piscine calcul\xE9 :" : roomId === "pension" ? "Tarif pension calcul\xE9 :" : "Tarif h\xE9bergement calcul\xE9 :" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-neutral-500 block", children: isDayPassRow(roomId) ? `Tarif ${rowNameLc} calcul\xE9 :` : "Tarif h\xE9bergement calcul\xE9 :" }),
                       /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-base font-bold font-mono text-emerald-900 tabular-nums", children: formatCurrency(tariffSimulation.calculatedRoomTotal) })
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
@@ -20846,7 +20870,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                         className: "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-sy-325032 hover:bg-sy-253d25 rounded-lg transition-colors cursor-pointer shadow-xs",
                         children: [
                           /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(Sparkles, { className: "w-3.5 h-3.5" }),
-                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: roomId === "piscine" ? "Appliquer au montant piscine" : roomId === "pension" ? "Appliquer au montant pension" : "Appliquer au montant h\xE9bergement" })
+                          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: isDayPassRow(roomId) ? `Appliquer au montant ${rowNameLc}` : "Appliquer au montant h\xE9bergement" })
                         ]
                       }
                     )
@@ -20866,7 +20890,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                 /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("label", { className: "block text-[11px] font-semibold text-neutral-800 mb-1 flex items-center gap-1.5", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(BedDouble, { className: "w-3.5 h-3.5 text-sy-325032" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: roomId === "piscine" ? "Montant location piscine (\u20AC)" : roomId === "pension" ? "Montant pension (\u20AC)" : "Montant h\xE9bergement (\u20AC)" })
+                    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: isResourceRow(roomId) ? `Montant location ${rowNameLc} (\u20AC)` : isServiceRow(roomId) ? `Montant ${rowNameLc} (\u20AC)` : "Montant h\xE9bergement (\u20AC)" })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
                     "input",
@@ -20874,7 +20898,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                       type: "text",
                       inputMode: "decimal",
                       value: roomAmountStr,
-                      placeholder: roomId === "piscine" ? "Ex : 10 ou 20" : roomId === "pension" ? "Ex : 15 ou 45" : "Ex : 140 ou 140,50",
+                      placeholder: isResourceRow(roomId) ? "Ex : 10 ou 20" : isServiceRow(roomId) ? "Ex : 15 ou 45" : "Ex : 140 ou 140,50",
                       onChange: (e) => {
                         const raw = e.target.value.replace(/[^0-9.,]/g, "");
                         setRoomAmountStr(raw);
@@ -20916,13 +20940,13 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("label", { className: "block text-[11px] font-semibold text-emerald-800 mb-1 flex items-center justify-between", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "flex items-center gap-1.5", children: [
                       /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(CircleCheck, { className: "w-3.5 h-3.5 text-emerald-600" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: roomId === "piscine" ? "Re\xE7u piscine (\u20AC)" : roomId === "pension" ? "Re\xE7u pension (\u20AC)" : "Re\xE7u h\xE9bergement (\u20AC)" })
+                      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: isDayPassRow(roomId) ? `Re\xE7u ${rowNameLc} (\u20AC)` : "Re\xE7u h\xE9bergement (\u20AC)" })
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[9px] text-emerald-600 font-normal", children: "(Net per\xE7u)" })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "w-full py-1.5 px-3 text-xs font-mono font-bold tabular-nums bg-emerald-50/80 border border-emerald-300 rounded-lg text-emerald-950 flex items-center justify-between min-h-[34px]", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: formatCurrency(Math.max(0, Math.round((parseAmountInput(roomAmountStr) - parseAmountInput(commissionAmountStr)) * 100) / 100)) }),
-                    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-emerald-700 font-sans font-normal", children: roomId === "piscine" ? "Piscine - Comm." : roomId === "pension" ? "Pension - Comm." : "H\xE9berg. - Comm." })
+                    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-emerald-700 font-sans font-normal", children: isDayPassRow(roomId) ? `${rowName} - Comm.` : "H\xE9berg. - Comm." })
                   ] })
                 ] })
               ] }),
@@ -21148,7 +21172,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "text-xs font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-1.5 flex-wrap", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(ShieldCheck, { className: "w-3.5 h-3.5 text-sy-325032" }),
                     "R\xE9gime fiscal & d\xE9claratif ",
-                    declaredAdditionalAmount > 0 ? `(Base : ${formatCurrency(urssafBase)})` : `(${roomId === "piscine" ? "re\xE7u piscine" : roomId === "pension" ? "re\xE7u pension" : "re\xE7u h\xE9bergement"} : ${formatCurrency(numericNetRoomReceived)})`
+                    declaredAdditionalAmount > 0 ? `(Base : ${formatCurrency(urssafBase)})` : `(${isDayPassRow(roomId) ? `re\xE7u ${rowNameLc}` : "re\xE7u h\xE9bergement"} : ${formatCurrency(numericNetRoomReceived)})`
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "text-[10px] text-neutral-500 hidden sm:inline", children: declaredAdditionalAmount > 0 ? `Extras d\xE9clar\xE9s : +${formatCurrency(declaredAdditionalAmount)}` : "Coch\xE9 par d\xE9faut pour Airbnb, Booking, Abritel" })
                 ] }),
@@ -21809,12 +21833,13 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
     const roomIdClean = (reservation.roomId || "").toLowerCase();
     const room = ROOMS[reservation.roomId] || ROOMS[roomIdClean] || ROOMS.figuier;
     const sourceObj = BOOKING_SOURCES.find((s) => s.id === reservation.bookingSource) || BOOKING_SOURCES[0];
+    const rowNameLc = room.name.toLowerCase();
     const isLightRoom = reservation.roomId === "figuier" || roomIdClean === "figuier";
     const isMagnolia = reservation.roomId === "magnolia" || roomIdClean === "magnolia";
     const fin = getReservationFinancials(reservation);
     const handleOpenGoogleCalendar = () => {
       if (!reservation) return;
-      const isPiscine = reservation.roomId === "piscine" || roomIdClean === "piscine";
+      const isPiscine = isResourceRow(reservation.roomId) || isResourceRow(roomIdClean);
       const guestTitle = reservation.guestName || "R\xE9servation";
       const title = isPiscine ? `${room.name} - ${guestTitle}` : guestTitle;
       const checkInStr = reservation.checkIn || "";
@@ -21940,7 +21965,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
           /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-2", children: [
             /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "bg-white p-2 rounded-lg border border-neutral-200/70", children: [
               /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("span", { className: "text-[10px] text-neutral-500 block", children: [
-                reservation.roomId === "piscine" ? "Montant location piscine" : reservation.roomId === "pension" ? "Montant pension" : "Montant h\xE9bergement",
+                isResourceRow(reservation.roomId) ? `Montant location ${rowNameLc}` : isServiceRow(reservation.roomId) ? `Montant ${rowNameLc}` : "Montant h\xE9bergement",
                 " (",
                 reservation.nights,
                 "n)"
@@ -21955,7 +21980,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
               ] })
             ] }),
             Boolean(reservation.commissionAmount && reservation.commissionAmount > 0) && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "bg-emerald-50/70 p-2 rounded-lg border border-emerald-200", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { className: "text-[10px] text-emerald-700 block", children: reservation.roomId === "piscine" ? "Re\xE7u piscine (net)" : reservation.roomId === "pension" ? "Re\xE7u pension (net)" : "Re\xE7u h\xE9bergement (net)" }),
+              /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { className: "text-[10px] text-emerald-700 block", children: isDayPassRow(reservation.roomId) ? `Re\xE7u ${rowNameLc} (net)` : "Re\xE7u h\xE9bergement (net)" }),
               /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { className: "font-mono font-bold text-emerald-900 tabular-nums", children: formatCurrency(Math.max(0, (reservation.roomAmount || 0) - (reservation.commissionAmount || 0))) })
             ] }),
             (!isOfficialVersion || reservation.isMealsDeclared && (reservation.mealsAmount || 0) > 0) && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "bg-white p-2 rounded-lg border border-neutral-200/70", children: [
@@ -21994,7 +22019,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
             /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "bg-amber-50/80 p-2.5 rounded-lg border border-amber-200", children: [
               /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("span", { className: "text-[10px] text-amber-900 font-semibold block", children: [
                 "Montant additionnel (",
-                reservation.roomId === "piscine" ? "hors piscine" : reservation.roomId === "pension" ? "hors pension" : "hors h\xE9bergement",
+                isDayPassRow(reservation.roomId) ? `hors ${rowNameLc}` : "hors h\xE9bergement",
                 ")"
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { className: "font-mono font-bold text-amber-950 text-sm tabular-nums", children: formatCurrency((reservation.mealsAmount || 0) + (reservation.drinksAmount || 0) + (reservation.dogCareAmount || 0) + (reservation.otherAmount || 0)) }),
@@ -22105,7 +22130,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { className: "text-neutral-500 block mb-1", children: "Composition" }),
-            reservation.roomId === "pension" ? /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(import_jsx_runtime32.Fragment, { children: [
+            isServiceRow(reservation.roomId) ? /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(import_jsx_runtime32.Fragment, { children: [
               /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "font-semibold text-neutral-900 flex items-center gap-1", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Dog, { className: "w-3.5 h-3.5 text-amber-700" }),
                 /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("span", { children: [
