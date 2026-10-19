@@ -1612,7 +1612,7 @@ var DomaineAppBundle = (() => {
     for (const res of reservations) {
       const resIn = parseLocalDate(res.checkIn);
       const resOut = parseLocalDate(res.checkOut);
-      if (resIn <= monthEnd && resOut > monthStart) {
+      if (resIn <= monthEnd && (resOut > monthStart || resIn >= monthStart)) {
         let nightsInThisMonth = 0;
         for (let day = 1; day <= daysInMonth; day++) {
           const currentNightDate = new Date(year, month, day);
@@ -1620,9 +1620,10 @@ var DomaineAppBundle = (() => {
             nightsInThisMonth++;
           }
         }
-        if (nightsInThisMonth > 0) {
+        const isDayVisit = resOut.getTime() <= resIn.getTime() && resIn >= monthStart && resIn <= monthEnd;
+        if (nightsInThisMonth > 0 || isDayVisit) {
           const totalStayNights = Math.max(1, res.nights);
-          const ratio = nightsInThisMonth / totalStayNights;
+          const ratio = isDayVisit ? 1 : nightsInThisMonth / totalStayNights;
           const fin = getReservationFinancials(res);
           const monthRevenueShare = Math.round(fin.totalRev * ratio * 100) / 100;
           const roomShare = Math.round(fin.roomRev * ratio * 100) / 100;
