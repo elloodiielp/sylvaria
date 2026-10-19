@@ -3355,6 +3355,24 @@ var DomaineAppBundle = (() => {
     const sanitized = sanitizeAppsScriptUrl(url);
     localStorage.setItem(APPS_SCRIPT_STORAGE_KEY, (sanitized.url || url).trim());
   }
+  var SHEET_PULLED_KEY = "domaine_sylvaria_sheet_pulled_url_v1";
+  var SHEET_PENDING_KEY = "domaine_sylvaria_sheet_pending_v1";
+  function markSheetPulled(webhookUrl) {
+    const sanitized = sanitizeAppsScriptUrl(webhookUrl);
+    if (!sanitized.error && sanitized.url) localStorage.setItem(SHEET_PULLED_KEY, sanitized.url);
+  }
+  function hasPulledFromSheet(webhookUrl) {
+    const sanitized = sanitizeAppsScriptUrl(webhookUrl || getStoredAppsScriptUrl() || "");
+    return !sanitized.error && !!sanitized.url && localStorage.getItem(SHEET_PULLED_KEY) === sanitized.url;
+  }
+  function hasPendingSheetChanges() {
+    return localStorage.getItem(SHEET_PENDING_KEY) === "true";
+  }
+  function setPendingSheetChanges(pending) {
+    if (pending) localStorage.setItem(SHEET_PENDING_KEY, "true");
+    else localStorage.removeItem(SHEET_PENDING_KEY);
+  }
+  var SHEET_NOT_PULLED_MESSAGE = "Enregistrement bloqu\xE9 : importez d'abord les donn\xE9es du Google Sheet (bouton \xAB T\xE9l\xE9charger \xBB) pour ne pas l'\xE9craser.";
   async function fetchFromAppsScript(webhookUrl) {
     const rawUrl = webhookUrl || getStoredAppsScriptUrl() || "";
     const sanitized = sanitizeAppsScriptUrl(rawUrl);
@@ -3381,6 +3399,10 @@ var DomaineAppBundle = (() => {
       try {
         data = JSON.parse(text);
       } catch {
+        return null;
+      }
+      if (data && data.status === "error") {
+        console.warn("Erreur du connecteur Google Apps Script :", data.message);
         return null;
       }
       if (data && (data.status === "success" || Array.isArray(data.reservations))) {
@@ -3917,6 +3939,10 @@ var DomaineAppBundle = (() => {
       throw new Error(sanitized.error);
     }
     const url = sanitized.url;
+    if (!hasPulledFromSheet(url)) {
+      setPendingSheetChanges(true);
+      throw new Error(SHEET_NOT_PULLED_MESSAGE);
+    }
     const payload = prepareSheetsPayload(reservations, externalReviews, visitReasons);
     try {
       await fetch(url, {
@@ -3928,6 +3954,7 @@ var DomaineAppBundle = (() => {
         body: JSON.stringify(payload)
       });
       setStoredAppsScriptUrl(url);
+      setPendingSheetChanges(false);
       return {
         spreadsheetId: "Apps-Script-Connect\xE9",
         spreadsheetUrl: url,
@@ -3936,6 +3963,7 @@ var DomaineAppBundle = (() => {
         syncedAt: (/* @__PURE__ */ new Date()).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
       };
     } catch (err) {
+      setPendingSheetChanges(true);
       if (err?.message?.includes("Failed to fetch") || err?.name === "TypeError") {
         throw new Error("Impossible de contacter Google Apps Script (Failed to fetch).\n\nCauses & Solutions :\n1. L'acc\xE8s au d\xE9ploiement doit \xEAtre configur\xE9 sur 'Tout le monde' dans Google Apps Script (D\xE9ployer > G\xE9rer les d\xE9ploiements).\n2. Assurez-vous d'avoir choisi le type 'Application Web' (et non pas 'Biblioth\xE8que').\n3. L'URL doit se terminer par /exec (corrig\xE9e automatiquement si besoin).");
       }
@@ -6519,7 +6547,7 @@ function doPost(e) {
               onClick: onManualSyncNow,
               disabled: isSyncing,
               className: "flex items-center gap-1 px-1.5 sm:px-3 py-1 sm:py-2 text-[10px] sm:text-xs font-bold text-emerald-900 bg-emerald-100/90 hover:bg-emerald-200 border border-emerald-300 rounded-full transition-all shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50",
-              title: "Enregistrer et synchroniser les modifications vers Google Sheets",
+              title: "Enregistrer les donn\xE9es de cet appareil dans Google Sheets",
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(RefreshCw, { className: `w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-800 ${isSyncing ? "animate-spin" : ""}` }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "text-[10px] sm:text-xs", children: "2. Enregistrer" })
@@ -8406,7 +8434,7 @@ function doPost(e) {
   var GoogleSheetsPanel = ({
     reservations = [],
     externalReviews = [],
-    onAppsScriptSyncSuccess
+    onLinkSheet
   }) => {
     const [copiedScript, setCopiedScript] = (0, import_react12.useState)(false);
     const [errorMsg, setErrorMsg] = (0, import_react12.useState)(null);
@@ -8436,17 +8464,19 @@ function doPost(e) {
       setIsWebhookSyncing(true);
       setWebhookSuccessMsg(null);
       try {
-        const res = await syncViaAppsScriptWebhook(sanitized.url, reservations, externalReviews);
-        let msg = `Synchronisation r\xE9ussie ! ${res.reservationsCount} r\xE9servations et ${res.reviewsCount} avis mis \xE0 jour.`;
+        setStoredAppsScriptUrl(sanitized.url);
+        const imported = onLinkSheet ? await onLinkSheet(sanitized.url) : false;
+        if (onLinkSheet && !imported) {
+          setErrorMsg("Adresse enregistr\xE9e, mais les donn\xE9es du Google Sheet n'ont pas pu \xEAtre lues. V\xE9rifiez le d\xE9ploiement (acc\xE8s \xAB Tout le monde \xBB) puis cliquez sur \xAB T\xE9l\xE9charger \xBB.");
+          return;
+        }
+        let msg = onLinkSheet ? "Adresse enregistr\xE9e et donn\xE9es import\xE9es depuis le Google Sheet." : "Adresse enregistr\xE9e.";
         if (sanitized.wasCorrected) {
           msg += " (URL automatiquement corrig\xE9e avec le suffixe /exec).";
         }
         setWebhookSuccessMsg(msg);
-        if (onAppsScriptSyncSuccess) {
-          onAppsScriptSyncSuccess(sanitized.url, res.syncedAt);
-        }
       } catch (err) {
-        setErrorMsg(err?.message || "Erreur lors de l'envoi vers Google Apps Script.");
+        setErrorMsg(err?.message || "Erreur lors de la lecture du Google Sheet.");
       } finally {
         setIsWebhookSyncing(false);
       }
@@ -8561,7 +8591,7 @@ function doPost(e) {
           className: "w-full py-3 bg-sy-325032 hover:bg-sy-253d25 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2",
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(RefreshCw, { className: `w-4 h-4 ${isWebhookSyncing ? "animate-spin" : ""}` }),
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: isWebhookSyncing ? "Synchronisation en cours..." : "Lier et synchroniser maintenant" })
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: isWebhookSyncing ? "Import en cours..." : "Enregistrer l'adresse et importer les donn\xE9es" })
           ]
         }
       )
@@ -8572,7 +8602,7 @@ function doPost(e) {
     onClose,
     reservations = [],
     externalReviews = [],
-    onAppsScriptSyncSuccess
+    onLinkSheet
   }) => {
     if (!isOpen) return null;
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "bg-white rounded-2xl shadow-2xl border border-neutral-200 max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden", children: [
@@ -8598,7 +8628,7 @@ function doPost(e) {
         {
           reservations,
           externalReviews,
-          onAppsScriptSyncSuccess
+          onLinkSheet
         }
       ) }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "p-4 border-t border-neutral-100 bg-neutral-50/50 flex justify-between items-center text-xs text-neutral-500", children: [
@@ -16775,11 +16805,8 @@ Cliquer pour modifier le tarif` : void 0,
       };
       customEdits[originalKey] = updatedData;
       safeStorage.setItem("domaine_sylvaria_contact_edits_v1", JSON.stringify(customEdits));
-      const webhookUrl = getStoredAppsScriptUrl();
-      if (webhookUrl) {
-        syncViaAppsScriptWebhook(webhookUrl, reservations, []).catch((err) => {
-          console.warn("Sync Google Sheets des contacts \xE9chou\xE9e :", err);
-        });
+      if (getStoredAppsScriptUrl()) {
+        window.dispatchEvent(new CustomEvent("domaine_sylvaria_trigger_sync"));
       }
       setEditingContact(null);
       setSaveSuccessMsg(`Fiche de ${updatedData.guestName} mise \xE0 jour avec succ\xE8s et synchronis\xE9e.`);
@@ -22527,10 +22554,13 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
       return () => unsubscribe();
     }, []);
     const triggerBackgroundSync = (0, import_react34.useCallback)(async (targetRes, targetReviews, force = false) => {
-      if (!autoSync && !force) return;
+      const webhookUrl = getStoredAppsScriptUrl();
+      if (!autoSync && !force) {
+        if (webhookUrl) setPendingSheetChanges(true);
+        return;
+      }
       try {
         setIsSyncing(true);
-        const webhookUrl = getStoredAppsScriptUrl();
         const reasons = loadVisitReasons();
         if (webhookUrl) {
           const res = await syncViaAppsScriptWebhook(webhookUrl, targetRes, targetReviews, reasons);
@@ -22548,29 +22578,15 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
         }
       } catch (err) {
         console.warn("Synchro Google Sheets en arri\xE8re-plan :", err);
+        if (err?.message === SHEET_NOT_PULLED_MESSAGE) showToast(SHEET_NOT_PULLED_MESSAGE);
       } finally {
         setIsSyncing(false);
       }
     }, [autoSync, spreadsheetId]);
     const reservationsRef = (0, import_react34.useRef)(reservations);
     reservationsRef.current = reservations;
-    (0, import_react34.useEffect)(() => {
-      let isCancelled = false;
-      (async () => {
-        const imports = await fetchIcalImports();
-        if (isCancelled || !imports || imports.length === 0) return;
-        const merged = mergeIcalImports(reservationsRef.current, imports);
-        if (merged.added + merged.linked + merged.updated === 0) return;
-        setReservations(merged.reservations);
-        if (merged.added > 0) {
-          showToast(`${merged.added} r\xE9servation(s) Airbnb / Booking import\xE9e(s), \xE0 compl\xE9ter.`);
-        }
-        triggerBackgroundSync(merged.reservations, externalReviews);
-      })();
-      return () => {
-        isCancelled = true;
-      };
-    }, []);
+    const externalReviewsRef = (0, import_react34.useRef)(externalReviews);
+    externalReviewsRef.current = externalReviews;
     (0, import_react34.useEffect)(() => {
       const handleSyncEvent = () => {
         triggerBackgroundSync(reservations, externalReviews, true);
@@ -22588,112 +22604,108 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
       setDataVersion((v) => v + 1);
       return true;
     };
-    const handleFetchAndSyncBothWay = async () => {
+    const importFromSheet = async (webhookUrl, silent = false) => {
       setIsSyncing(true);
-      const webhookUrl = getStoredAppsScriptUrl();
-      const reasons = loadVisitReasons();
+      let toSync = null;
       try {
-        let updatedReservations = reservations;
-        let updatedReviews = externalReviews;
-        if (webhookUrl) {
-          const remote = await fetchFromAppsScript(webhookUrl);
-          if (remote) {
-            if (remote.reservations && remote.reservations.length > 0) {
-              updatedReservations = remote.reservations;
-              setReservations(remote.reservations);
-              saveReservations(remote.reservations);
-            }
-            if (remote.externalReviews && remote.externalReviews.length > 0) {
-              updatedReviews = remote.externalReviews;
-              setExternalReviews(remote.externalReviews);
-              saveExternalReviews(remote.externalReviews);
-            }
-            if (remote.visitReasons && remote.visitReasons.length > 0) {
-              saveVisitReasons(remote.visitReasons);
-            }
-            applyRemoteSettings(remote.appStores?.settings);
-            applyRemoteDeviceStores(remote.appStores);
-          }
-          const imports = await fetchIcalImports(webhookUrl);
-          if (imports) {
-            const merged = mergeIcalImports(updatedReservations, imports);
-            if (merged.added + merged.linked + merged.updated > 0) {
-              updatedReservations = merged.reservations;
-              setReservations(merged.reservations);
-            }
-          }
+        const remote = await fetchFromAppsScript(webhookUrl);
+        if (!remote) {
+          if (!silent) showToast("Aucune donn\xE9e re\xE7ue de Google Sheets : v\xE9rifiez l'adresse du connecteur.");
+          return false;
         }
-        if (webhookUrl) {
-          const result = await syncViaAppsScriptWebhook(webhookUrl, updatedReservations, updatedReviews, reasons);
-          setLastSyncedAt(result.syncedAt);
-          showToast(`Google Sheets actualis\xE9 et enregistr\xE9 (${result.syncedAt}) !`);
-        } else {
-          let token = await getAccessToken();
-          if (!token) {
-            const loginRes = await signInWithGoogle();
-            token = loginRes.accessToken;
-            setCurrentUser(loginRes.user);
+        const localReservations = reservationsRef.current;
+        const sheetIsEmpty = !remote.reservations || remote.reservations.length === 0;
+        let nextReservations = localReservations;
+        let nextReviews = externalReviewsRef.current;
+        if (!sheetIsEmpty) {
+          try {
+            if (localReservations.length > 0) {
+              localStorage.setItem("domaine_sylvaria_reservations_avant_import_v1", JSON.stringify({
+                date: (/* @__PURE__ */ new Date()).toISOString(),
+                reservations: localReservations
+              }));
+            }
+          } catch {
           }
-          const result = await syncAllDataToGoogleSheets(token, updatedReservations, updatedReviews, spreadsheetId || void 0);
-          setSpreadsheetId(result.spreadsheetId);
-          setSpreadsheetUrl(result.spreadsheetUrl);
-          setLastSyncedAt(result.syncedAt);
-          showToast(`Google Sheets actualis\xE9 et enregistr\xE9 (${result.syncedAt}) !`);
+          nextReservations = remote.reservations;
         }
+        if (remote.externalReviews && remote.externalReviews.length > 0) {
+          nextReviews = remote.externalReviews;
+        }
+        if (remote.visitReasons && remote.visitReasons.length > 0) {
+          saveVisitReasons(remote.visitReasons);
+        }
+        applyRemoteSettings(remote.appStores?.settings);
+        applyRemoteDeviceStores(remote.appStores);
+        markSheetPulled(webhookUrl);
+        const localOnly = sheetIsEmpty && localReservations.length > 0;
+        setPendingSheetChanges(localOnly);
+        const imports = await fetchIcalImports(webhookUrl);
+        const merged = imports ? mergeIcalImports(nextReservations, imports) : null;
+        if (merged && merged.added + merged.linked + merged.updated > 0) {
+          nextReservations = merged.reservations;
+          if (!localOnly) toSync = { reservations: nextReservations, reviews: nextReviews };
+        }
+        setReservations(nextReservations);
+        saveReservations(nextReservations);
+        setExternalReviews(nextReviews);
+        saveExternalReviews(nextReviews);
+        const nowStr = (/* @__PURE__ */ new Date()).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        setLastSyncedAt(nowStr);
+        if (localOnly) {
+          showToast("Le Google Sheet est vide : cliquez sur \xAB 2. Enregistrer \xBB pour y envoyer les donn\xE9es de cet appareil.");
+        } else if (merged && merged.added > 0) {
+          showToast(`${merged.added} r\xE9servation(s) Airbnb / Booking import\xE9e(s), \xE0 compl\xE9ter.`);
+        } else if (!silent) {
+          showToast(`Donn\xE9es import\xE9es depuis Google Sheets (${nowStr}) !`);
+        }
+        return true;
       } catch (err) {
-        console.error("Erreur actualisation et enregistrement :", err);
-        showToast(`Erreur : ${err?.message || "\xC9chec de synchronisation"}`);
+        console.error("Erreur import Google Sheets :", err);
+        if (!silent) showToast(`Erreur : ${err?.message || "\xC9chec de l'import"}`);
+        return false;
       } finally {
         setIsSyncing(false);
+        if (toSync) triggerBackgroundSync(toSync.reservations, toSync.reviews);
       }
+    };
+    const askSheetUrlFirst = () => {
+      showToast("Veuillez d'abord renseigner l'adresse du connecteur (Param\xE9trage > Google Sheets).");
+      setIsGoogleSheetsModalOpen(true);
     };
     const handleImportFromGoogleSheets = async () => {
       const webhookUrl = getStoredAppsScriptUrl();
-      if (!webhookUrl) {
-        showToast("Veuillez d'abord configurer l'URL Google Apps Script via le bouton Google Sheets.");
-        setIsGoogleSheetsModalOpen(true);
-        return;
-      }
+      if (!webhookUrl) return askSheetUrlFirst();
+      if (hasPendingSheetChanges() && !window.confirm(
+        "Des modifications faites sur cet appareil n'ont pas encore \xE9t\xE9 enregistr\xE9es dans le Google Sheet.\n\nOK : les remplacer par les donn\xE9es du Google Sheet.\nAnnuler : ne rien faire (cliquez ensuite sur \xAB 2. Enregistrer \xBB pour les envoyer)."
+      )) return;
+      await importFromSheet(webhookUrl);
+    };
+    const handleSaveToGoogleSheets = async () => {
+      const webhookUrl = getStoredAppsScriptUrl();
+      if (!webhookUrl) return askSheetUrlFirst();
       setIsSyncing(true);
       try {
-        const remote = await fetchFromAppsScript(webhookUrl);
-        if (remote) {
-          let updatedAny = false;
-          if (remote.reservations && remote.reservations.length > 0) {
-            const imports = await fetchIcalImports(webhookUrl);
-            const nextReservations = imports ? mergeIcalImports(remote.reservations, imports).reservations : remote.reservations;
-            setReservations(nextReservations);
-            saveReservations(nextReservations);
-            updatedAny = true;
-          }
-          if (remote.externalReviews && remote.externalReviews.length > 0) {
-            setExternalReviews(remote.externalReviews);
-            saveExternalReviews(remote.externalReviews);
-            updatedAny = true;
-          }
-          if (remote.visitReasons && remote.visitReasons.length > 0) {
-            saveVisitReasons(remote.visitReasons);
-            updatedAny = true;
-          }
-          if (applyRemoteSettings(remote.appStores?.settings)) {
-            updatedAny = true;
-          }
-          if (applyRemoteDeviceStores(remote.appStores)) {
-            updatedAny = true;
-          }
-          const nowStr = (/* @__PURE__ */ new Date()).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-          setLastSyncedAt(nowStr);
-          showToast(`Donn\xE9es t\xE9l\xE9charg\xE9es et import\xE9es depuis Google Sheets (${nowStr}) !`);
-        } else {
-          showToast("Aucune donn\xE9e re\xE7ue de Google Sheets.");
-        }
+        const result = await syncViaAppsScriptWebhook(webhookUrl, reservations, externalReviews, loadVisitReasons());
+        setLastSyncedAt(result.syncedAt);
+        showToast(`Donn\xE9es enregistr\xE9es dans Google Sheets (${result.syncedAt}) !`);
       } catch (err) {
-        console.error("Erreur t\xE9l\xE9chargement Google Sheets :", err);
-        showToast(`Erreur : ${err?.message || "\xC9chec du t\xE9l\xE9chargement"}`);
+        console.error("Erreur enregistrement Google Sheets :", err);
+        showToast(err?.message === SHEET_NOT_PULLED_MESSAGE ? SHEET_NOT_PULLED_MESSAGE : `Erreur : ${err?.message || "\xC9chec de l'enregistrement"}`);
       } finally {
         setIsSyncing(false);
       }
     };
+    const handleLinkSheet = (url) => importFromSheet(url);
+    (0, import_react34.useEffect)(() => {
+      const webhookUrl = getStoredAppsScriptUrl();
+      if (!webhookUrl) return;
+      if (hasPendingSheetChanges() && hasPulledFromSheet(webhookUrl)) {
+        showToast("Des modifications de cet appareil n'ont pas encore \xE9t\xE9 envoy\xE9es au Google Sheet : cliquez sur \xAB 2. Enregistrer \xBB.");
+        return;
+      }
+      importFromSheet(webhookUrl, true);
+    }, []);
     const handleGoogleSignIn = async () => {
       try {
         const res = await signInWithGoogle();
@@ -22716,11 +22728,6 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
       } catch (err) {
         showToast(`Connexion Google annul\xE9e.`);
       }
-    };
-    const handleAppsScriptSyncSuccess = (url, time) => {
-      setSpreadsheetUrl(url);
-      setLastSyncedAt(time);
-      showToast("Google Sheets mis \xE0 jour via Apps Script !");
     };
     const handleGoogleSignOut = async () => {
       await signOutFromGoogle();
@@ -23010,7 +23017,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
           onOpenGoogleSheetsSync: () => setIsGoogleSheetsModalOpen(true),
           onOpenSettings: () => setIsSettingsOpen(true),
           onExportExcel: () => exportReferenceExcelWorkbook(effectiveReservations, loadVisitReasons(), externalReviews),
-          onManualSyncNow: handleFetchAndSyncBothWay,
+          onManualSyncNow: handleSaveToGoogleSheets,
           onImportFromGoogleSheets: handleImportFromGoogleSheets,
           isSyncing,
           lastSyncedAt,
@@ -23201,12 +23208,12 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
           onToggleAutoSync: handleToggleAutoSync,
           onSignIn: handleGoogleSignIn,
           onSignOut: handleGoogleSignOut,
-          onSyncNow: handleFetchAndSyncBothWay,
+          onSyncNow: handleSaveToGoogleSheets,
           onSaveCustomSpreadsheetId: handleSaveCustomSpreadsheetId,
           reservationsCount: effectiveReservations.length,
           reservations: effectiveReservations,
           externalReviews,
-          onAppsScriptSyncSuccess: handleAppsScriptSyncSuccess
+          onLinkSheet: handleLinkSheet
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
@@ -23219,7 +23226,7 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
             reservations: effectiveReservations,
             externalReviews,
             lastSyncedAt,
-            onAppsScriptSyncSuccess: handleAppsScriptSyncSuccess
+            onLinkSheet: handleLinkSheet
           }
         }
       ),
