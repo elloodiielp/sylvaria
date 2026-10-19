@@ -2778,6 +2778,42 @@ var DomaineAppBundle = (() => {
   var import_react3 = __require("react");
   var TASKS_STORAGE_KEY = "domaine_sylvaria_housekeeping_tasks_v1";
   var item = (id, label, category) => ({ id, label, category });
+  function momentChecklists() {
+    return [
+      {
+        id: "apres_depart",
+        name: "Apr\xE8s le d\xE9part",
+        items: [
+          item("d_aerer", "A\xE9rer la chambre", "menage"),
+          item("d_lit", "D\xE9faire le lit, linge sale au lavage", "linge"),
+          item("d_serviettes", "Serviettes et tapis de bain au lavage", "linge"),
+          item("d_poubelles", "Poubelles vid\xE9es", "menage"),
+          item("d_sdb", "Salle de bain : douche, lavabo, miroir", "menage"),
+          item("d_wc", "WC nettoy\xE9s et d\xE9sinfect\xE9s", "menage"),
+          item("d_poussieres", "Poussi\xE8res (meubles, rebords, luminaires)", "menage"),
+          item("d_sols", "Sols aspir\xE9s et lav\xE9s", "menage"),
+          item("d_literie", "Literie contr\xF4l\xE9e (taches, oreillers, couettes)", "linge"),
+          item("d_oublis", "Aucun objet oubli\xE9 (sinon le signaler)", "controle"),
+          item("d_degats", "Aucun d\xE9g\xE2t ni panne (sinon le signaler)", "controle")
+        ]
+      },
+      {
+        id: "avant_arrivee",
+        name: "Avant l'arriv\xE9e",
+        items: [
+          item("a_lit", "Lit fait avec draps propres", "linge"),
+          item("a_serviettes", "Serviettes et tapis de bain propres", "linge"),
+          item("a_papier", "Papier toilette", "consommables"),
+          item("a_savon", "Savon, gel douche, shampoing", "consommables"),
+          item("a_the_cafe", "Th\xE9, caf\xE9, eau", "consommables"),
+          item("a_temperature", "Chauffage ou climatisation r\xE9gl\xE9s", "controle"),
+          item("a_equipements", "Lumi\xE8res, TV, Wi-Fi en \xE9tat", "controle"),
+          item("a_accueil", "Mot d'accueil, livret, cl\xE9s", "controle"),
+          item("a_final", "Coup d'\u0153il final : chambre pr\xEAte", "controle")
+        ]
+      }
+    ];
+  }
   function createDefaultHousekeepingSettings() {
     return {
       statuses: [
@@ -2827,10 +2863,15 @@ var DomaineAppBundle = (() => {
             item("c_sanitaires", "Sanitaires communs", "menage"),
             item("c_controle", "Contr\xF4le g\xE9n\xE9ral", "controle")
           ]
-        }
+        },
+        ...momentChecklists()
       ],
       roomChecklist: {},
+      roomChecklistDeparture: {},
+      roomChecklistArrival: {},
       defaultChecklistId: "preparation_chambre",
+      departureChecklistId: "apres_depart",
+      arrivalChecklistId: "avant_arrivee",
       auto: {
         enabled: true,
         time: "11:00",
@@ -2839,7 +2880,10 @@ var DomaineAppBundle = (() => {
         priorityId: "normale",
         assigneeId: "",
         arrivalCheck: true,
-        arrivalCheckGapDays: 3
+        arrivalMode: "always",
+        arrivalCheckGapDays: 3,
+        arrivalTaskTime: "14:00",
+        arrivalEstimatedMinutes: 30
       },
       recurring: [],
       autoFrom: "",
@@ -2857,14 +2901,20 @@ var DomaineAppBundle = (() => {
     const defaults = createDefaultHousekeepingSettings();
     const stored = settings.modules.housekeeping?.settings || {};
     const list = (v, d) => Array.isArray(v) && v.length > 0 ? v : d;
+    let checklists = Array.isArray(stored.checklists) ? stored.checklists : defaults.checklists;
+    if (Array.isArray(stored.checklists) && stored.departureChecklistId === void 0) {
+      checklists = [...checklists, ...momentChecklists().filter((c) => !checklists.some((x) => x.id === c.id))];
+    }
     return {
       ...defaults,
       ...stored,
       statuses: list(stored.statuses, defaults.statuses),
       priorities: list(stored.priorities, defaults.priorities),
       zones: Array.isArray(stored.zones) ? stored.zones : defaults.zones,
-      checklists: Array.isArray(stored.checklists) ? stored.checklists : defaults.checklists,
+      checklists,
       roomChecklist: { ...stored.roomChecklist || {} },
+      roomChecklistDeparture: { ...stored.roomChecklistDeparture || {} },
+      roomChecklistArrival: { ...stored.roomChecklistArrival || {} },
       recurring: Array.isArray(stored.recurring) ? stored.recurring : [],
       auto: { ...defaults.auto, ...stored.auto || {} },
       validation: { ...defaults.validation, ...stored.validation || {} },
@@ -6142,15 +6192,31 @@ function doPost(e) {
   ];
   var Lock = createLucideIcon("lock", __iconNode49);
 
-  // node_modules/lucide-react/dist/esm/icons/mail.js
+  // node_modules/lucide-react/dist/esm/icons/log-in.js
   var __iconNode50 = [
+    ["path", { d: "m10 17 5-5-5-5", key: "1bsop3" }],
+    ["path", { d: "M15 12H3", key: "6jk70r" }],
+    ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", key: "u53s6r" }]
+  ];
+  var LogIn = createLucideIcon("log-in", __iconNode50);
+
+  // node_modules/lucide-react/dist/esm/icons/log-out.js
+  var __iconNode51 = [
+    ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
+    ["path", { d: "M21 12H9", key: "dn1m92" }],
+    ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
+  ];
+  var LogOut = createLucideIcon("log-out", __iconNode51);
+
+  // node_modules/lucide-react/dist/esm/icons/mail.js
+  var __iconNode52 = [
     ["path", { d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7", key: "132q7q" }],
     ["rect", { x: "2", y: "4", width: "20", height: "16", rx: "2", key: "izxlao" }]
   ];
-  var Mail = createLucideIcon("mail", __iconNode50);
+  var Mail = createLucideIcon("mail", __iconNode52);
 
   // node_modules/lucide-react/dist/esm/icons/map-pin.js
-  var __iconNode51 = [
+  var __iconNode53 = [
     [
       "path",
       {
@@ -6160,18 +6226,18 @@ function doPost(e) {
     ],
     ["circle", { cx: "12", cy: "10", r: "3", key: "ilqhr7" }]
   ];
-  var MapPin = createLucideIcon("map-pin", __iconNode51);
+  var MapPin = createLucideIcon("map-pin", __iconNode53);
 
   // node_modules/lucide-react/dist/esm/icons/menu.js
-  var __iconNode52 = [
+  var __iconNode54 = [
     ["path", { d: "M4 5h16", key: "1tepv9" }],
     ["path", { d: "M4 12h16", key: "1lakjw" }],
     ["path", { d: "M4 19h16", key: "1djgab" }]
   ];
-  var Menu = createLucideIcon("menu", __iconNode52);
+  var Menu = createLucideIcon("menu", __iconNode54);
 
   // node_modules/lucide-react/dist/esm/icons/message-square-plus.js
-  var __iconNode53 = [
+  var __iconNode55 = [
     [
       "path",
       {
@@ -6182,10 +6248,10 @@ function doPost(e) {
     ["path", { d: "M12 8v6", key: "1ib9pf" }],
     ["path", { d: "M9 11h6", key: "1fldmi" }]
   ];
-  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode53);
+  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode55);
 
   // node_modules/lucide-react/dist/esm/icons/message-square.js
-  var __iconNode54 = [
+  var __iconNode56 = [
     [
       "path",
       {
@@ -6194,14 +6260,14 @@ function doPost(e) {
       }
     ]
   ];
-  var MessageSquare = createLucideIcon("message-square", __iconNode54);
+  var MessageSquare = createLucideIcon("message-square", __iconNode56);
 
   // node_modules/lucide-react/dist/esm/icons/minus.js
-  var __iconNode55 = [["path", { d: "M5 12h14", key: "1ays0h" }]];
-  var Minus = createLucideIcon("minus", __iconNode55);
+  var __iconNode57 = [["path", { d: "M5 12h14", key: "1ays0h" }]];
+  var Minus = createLucideIcon("minus", __iconNode57);
 
   // node_modules/lucide-react/dist/esm/icons/pen-line.js
-  var __iconNode56 = [
+  var __iconNode58 = [
     ["path", { d: "M13 21h8", key: "1jsn5i" }],
     [
       "path",
@@ -6211,10 +6277,10 @@ function doPost(e) {
       }
     ]
   ];
-  var PenLine = createLucideIcon("pen-line", __iconNode56);
+  var PenLine = createLucideIcon("pen-line", __iconNode58);
 
   // node_modules/lucide-react/dist/esm/icons/pen.js
-  var __iconNode57 = [
+  var __iconNode59 = [
     [
       "path",
       {
@@ -6223,10 +6289,10 @@ function doPost(e) {
       }
     ]
   ];
-  var Pen = createLucideIcon("pen", __iconNode57);
+  var Pen = createLucideIcon("pen", __iconNode59);
 
   // node_modules/lucide-react/dist/esm/icons/pencil.js
-  var __iconNode58 = [
+  var __iconNode60 = [
     [
       "path",
       {
@@ -6236,18 +6302,18 @@ function doPost(e) {
     ],
     ["path", { d: "m15 5 4 4", key: "1mk7zo" }]
   ];
-  var Pencil = createLucideIcon("pencil", __iconNode58);
+  var Pencil = createLucideIcon("pencil", __iconNode60);
 
   // node_modules/lucide-react/dist/esm/icons/percent.js
-  var __iconNode59 = [
+  var __iconNode61 = [
     ["line", { x1: "19", x2: "5", y1: "5", y2: "19", key: "1x9vlm" }],
     ["circle", { cx: "6.5", cy: "6.5", r: "2.5", key: "4mh3h7" }],
     ["circle", { cx: "17.5", cy: "17.5", r: "2.5", key: "1mdrzq" }]
   ];
-  var Percent = createLucideIcon("percent", __iconNode59);
+  var Percent = createLucideIcon("percent", __iconNode61);
 
   // node_modules/lucide-react/dist/esm/icons/phone.js
-  var __iconNode60 = [
+  var __iconNode62 = [
     [
       "path",
       {
@@ -6256,10 +6322,10 @@ function doPost(e) {
       }
     ]
   ];
-  var Phone = createLucideIcon("phone", __iconNode60);
+  var Phone = createLucideIcon("phone", __iconNode62);
 
   // node_modules/lucide-react/dist/esm/icons/play.js
-  var __iconNode61 = [
+  var __iconNode63 = [
     [
       "path",
       {
@@ -6268,24 +6334,24 @@ function doPost(e) {
       }
     ]
   ];
-  var Play = createLucideIcon("play", __iconNode61);
+  var Play = createLucideIcon("play", __iconNode63);
 
   // node_modules/lucide-react/dist/esm/icons/plus.js
-  var __iconNode62 = [
+  var __iconNode64 = [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "M12 5v14", key: "s699le" }]
   ];
-  var Plus = createLucideIcon("plus", __iconNode62);
+  var Plus = createLucideIcon("plus", __iconNode64);
 
   // node_modules/lucide-react/dist/esm/icons/power.js
-  var __iconNode63 = [
+  var __iconNode65 = [
     ["path", { d: "M12 2v10", key: "mnfbl" }],
     ["path", { d: "M18.4 6.6a9 9 0 1 1-12.77.04", key: "obofu9" }]
   ];
-  var Power = createLucideIcon("power", __iconNode63);
+  var Power = createLucideIcon("power", __iconNode65);
 
   // node_modules/lucide-react/dist/esm/icons/printer.js
-  var __iconNode64 = [
+  var __iconNode66 = [
     [
       "path",
       {
@@ -6296,10 +6362,10 @@ function doPost(e) {
     ["path", { d: "M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6", key: "1itne7" }],
     ["rect", { x: "6", y: "14", width: "12", height: "8", rx: "1", key: "1ue0tg" }]
   ];
-  var Printer = createLucideIcon("printer", __iconNode64);
+  var Printer = createLucideIcon("printer", __iconNode66);
 
   // node_modules/lucide-react/dist/esm/icons/receipt.js
-  var __iconNode65 = [
+  var __iconNode67 = [
     [
       "path",
       { d: "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z", key: "q3az6g" }
@@ -6307,26 +6373,26 @@ function doPost(e) {
     ["path", { d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8", key: "1h4pet" }],
     ["path", { d: "M12 17.5v-11", key: "1jc1ny" }]
   ];
-  var Receipt = createLucideIcon("receipt", __iconNode65);
+  var Receipt = createLucideIcon("receipt", __iconNode67);
 
   // node_modules/lucide-react/dist/esm/icons/refresh-cw.js
-  var __iconNode66 = [
+  var __iconNode68 = [
     ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
     ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
     ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
     ["path", { d: "M8 16H3v5", key: "1cv678" }]
   ];
-  var RefreshCw = createLucideIcon("refresh-cw", __iconNode66);
+  var RefreshCw = createLucideIcon("refresh-cw", __iconNode68);
 
   // node_modules/lucide-react/dist/esm/icons/rotate-ccw.js
-  var __iconNode67 = [
+  var __iconNode69 = [
     ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
     ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
   ];
-  var RotateCcw = createLucideIcon("rotate-ccw", __iconNode67);
+  var RotateCcw = createLucideIcon("rotate-ccw", __iconNode69);
 
   // node_modules/lucide-react/dist/esm/icons/save.js
-  var __iconNode68 = [
+  var __iconNode70 = [
     [
       "path",
       {
@@ -6337,26 +6403,26 @@ function doPost(e) {
     ["path", { d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7", key: "1ydtos" }],
     ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
   ];
-  var Save = createLucideIcon("save", __iconNode68);
+  var Save = createLucideIcon("save", __iconNode70);
 
   // node_modules/lucide-react/dist/esm/icons/search.js
-  var __iconNode69 = [
+  var __iconNode71 = [
     ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
   ];
-  var Search = createLucideIcon("search", __iconNode69);
+  var Search = createLucideIcon("search", __iconNode71);
 
   // node_modules/lucide-react/dist/esm/icons/settings-2.js
-  var __iconNode70 = [
+  var __iconNode72 = [
     ["path", { d: "M14 17H5", key: "gfn3mx" }],
     ["path", { d: "M19 7h-9", key: "6i9tg" }],
     ["circle", { cx: "17", cy: "17", r: "3", key: "18b49y" }],
     ["circle", { cx: "7", cy: "7", r: "3", key: "dfmy0x" }]
   ];
-  var Settings2 = createLucideIcon("settings-2", __iconNode70);
+  var Settings2 = createLucideIcon("settings-2", __iconNode72);
 
   // node_modules/lucide-react/dist/esm/icons/settings.js
-  var __iconNode71 = [
+  var __iconNode73 = [
     [
       "path",
       {
@@ -6366,10 +6432,10 @@ function doPost(e) {
     ],
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ];
-  var Settings = createLucideIcon("settings", __iconNode71);
+  var Settings = createLucideIcon("settings", __iconNode73);
 
   // node_modules/lucide-react/dist/esm/icons/shield-check.js
-  var __iconNode72 = [
+  var __iconNode74 = [
     [
       "path",
       {
@@ -6379,10 +6445,10 @@ function doPost(e) {
     ],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ];
-  var ShieldCheck = createLucideIcon("shield-check", __iconNode72);
+  var ShieldCheck = createLucideIcon("shield-check", __iconNode74);
 
   // node_modules/lucide-react/dist/esm/icons/sliders-horizontal.js
-  var __iconNode73 = [
+  var __iconNode75 = [
     ["path", { d: "M10 5H3", key: "1qgfaw" }],
     ["path", { d: "M12 19H3", key: "yhmn1j" }],
     ["path", { d: "M14 3v4", key: "1sua03" }],
@@ -6393,10 +6459,10 @@ function doPost(e) {
     ["path", { d: "M8 10v4", key: "tgpxqk" }],
     ["path", { d: "M8 12H3", key: "a7s4jb" }]
   ];
-  var SlidersHorizontal = createLucideIcon("sliders-horizontal", __iconNode73);
+  var SlidersHorizontal = createLucideIcon("sliders-horizontal", __iconNode75);
 
   // node_modules/lucide-react/dist/esm/icons/sparkles.js
-  var __iconNode74 = [
+  var __iconNode76 = [
     [
       "path",
       {
@@ -6408,10 +6474,10 @@ function doPost(e) {
     ["path", { d: "M22 4h-4", key: "gwowj6" }],
     ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }]
   ];
-  var Sparkles = createLucideIcon("sparkles", __iconNode74);
+  var Sparkles = createLucideIcon("sparkles", __iconNode76);
 
   // node_modules/lucide-react/dist/esm/icons/square-pen.js
-  var __iconNode75 = [
+  var __iconNode77 = [
     ["path", { d: "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7", key: "1m0v6g" }],
     [
       "path",
@@ -6421,10 +6487,10 @@ function doPost(e) {
       }
     ]
   ];
-  var SquarePen = createLucideIcon("square-pen", __iconNode75);
+  var SquarePen = createLucideIcon("square-pen", __iconNode77);
 
   // node_modules/lucide-react/dist/esm/icons/star.js
-  var __iconNode76 = [
+  var __iconNode78 = [
     [
       "path",
       {
@@ -6433,19 +6499,19 @@ function doPost(e) {
       }
     ]
   ];
-  var Star = createLucideIcon("star", __iconNode76);
+  var Star = createLucideIcon("star", __iconNode78);
 
   // node_modules/lucide-react/dist/esm/icons/table-properties.js
-  var __iconNode77 = [
+  var __iconNode79 = [
     ["path", { d: "M15 3v18", key: "14nvp0" }],
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M21 9H3", key: "1338ky" }],
     ["path", { d: "M21 15H3", key: "9uk58r" }]
   ];
-  var TableProperties = createLucideIcon("table-properties", __iconNode77);
+  var TableProperties = createLucideIcon("table-properties", __iconNode79);
 
   // node_modules/lucide-react/dist/esm/icons/thumbs-up.js
-  var __iconNode78 = [
+  var __iconNode80 = [
     ["path", { d: "M7 10v12", key: "1qc93n" }],
     [
       "path",
@@ -6455,27 +6521,27 @@ function doPost(e) {
       }
     ]
   ];
-  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode78);
+  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode80);
 
   // node_modules/lucide-react/dist/esm/icons/trash-2.js
-  var __iconNode79 = [
+  var __iconNode81 = [
     ["path", { d: "M10 11v6", key: "nco0om" }],
     ["path", { d: "M14 11v6", key: "outv1u" }],
     ["path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6", key: "miytrc" }],
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", key: "e791ji" }]
   ];
-  var Trash2 = createLucideIcon("trash-2", __iconNode79);
+  var Trash2 = createLucideIcon("trash-2", __iconNode81);
 
   // node_modules/lucide-react/dist/esm/icons/trending-up.js
-  var __iconNode80 = [
+  var __iconNode82 = [
     ["path", { d: "M16 7h6v6", key: "box55l" }],
     ["path", { d: "m22 7-8.5 8.5-5-5L2 17", key: "1t1m79" }]
   ];
-  var TrendingUp = createLucideIcon("trending-up", __iconNode80);
+  var TrendingUp = createLucideIcon("trending-up", __iconNode82);
 
   // node_modules/lucide-react/dist/esm/icons/triangle-alert.js
-  var __iconNode81 = [
+  var __iconNode83 = [
     [
       "path",
       {
@@ -6486,56 +6552,56 @@ function doPost(e) {
     ["path", { d: "M12 9v4", key: "juzpu7" }],
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ];
-  var TriangleAlert = createLucideIcon("triangle-alert", __iconNode81);
+  var TriangleAlert = createLucideIcon("triangle-alert", __iconNode83);
 
   // node_modules/lucide-react/dist/esm/icons/undo-2.js
-  var __iconNode82 = [
+  var __iconNode84 = [
     ["path", { d: "M9 14 4 9l5-5", key: "102s5s" }],
     ["path", { d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11", key: "f3b9sd" }]
   ];
-  var Undo2 = createLucideIcon("undo-2", __iconNode82);
+  var Undo2 = createLucideIcon("undo-2", __iconNode84);
 
   // node_modules/lucide-react/dist/esm/icons/upload.js
-  var __iconNode83 = [
+  var __iconNode85 = [
     ["path", { d: "M12 3v12", key: "1x0j5s" }],
     ["path", { d: "m17 8-5-5-5 5", key: "7q97r8" }],
     ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }]
   ];
-  var Upload = createLucideIcon("upload", __iconNode83);
+  var Upload = createLucideIcon("upload", __iconNode85);
 
   // node_modules/lucide-react/dist/esm/icons/user-check.js
-  var __iconNode84 = [
+  var __iconNode86 = [
     ["path", { d: "m16 11 2 2 4-4", key: "9rsbq5" }],
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }]
   ];
-  var UserCheck = createLucideIcon("user-check", __iconNode84);
+  var UserCheck = createLucideIcon("user-check", __iconNode86);
 
   // node_modules/lucide-react/dist/esm/icons/user-round.js
-  var __iconNode85 = [
+  var __iconNode87 = [
     ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
     ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
   ];
-  var UserRound = createLucideIcon("user-round", __iconNode85);
+  var UserRound = createLucideIcon("user-round", __iconNode87);
 
   // node_modules/lucide-react/dist/esm/icons/user.js
-  var __iconNode86 = [
+  var __iconNode88 = [
     ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
     ["circle", { cx: "12", cy: "7", r: "4", key: "17ys0d" }]
   ];
-  var User2 = createLucideIcon("user", __iconNode86);
+  var User2 = createLucideIcon("user", __iconNode88);
 
   // node_modules/lucide-react/dist/esm/icons/users.js
-  var __iconNode87 = [
+  var __iconNode89 = [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["path", { d: "M16 3.128a4 4 0 0 1 0 7.744", key: "16gr8j" }],
     ["path", { d: "M22 21v-2a4 4 0 0 0-3-3.87", key: "kshegd" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }]
   ];
-  var Users = createLucideIcon("users", __iconNode87);
+  var Users = createLucideIcon("users", __iconNode89);
 
   // node_modules/lucide-react/dist/esm/icons/utensils-crossed.js
-  var __iconNode88 = [
+  var __iconNode90 = [
     ["path", { d: "m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8", key: "n7qcjb" }],
     [
       "path",
@@ -6544,18 +6610,18 @@ function doPost(e) {
     ["path", { d: "m2.1 21.8 6.4-6.3", key: "yn04lh" }],
     ["path", { d: "m19 5-7 7", key: "194lzd" }]
   ];
-  var UtensilsCrossed = createLucideIcon("utensils-crossed", __iconNode88);
+  var UtensilsCrossed = createLucideIcon("utensils-crossed", __iconNode90);
 
   // node_modules/lucide-react/dist/esm/icons/utensils.js
-  var __iconNode89 = [
+  var __iconNode91 = [
     ["path", { d: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2", key: "cjf0a3" }],
     ["path", { d: "M7 2v20", key: "1473qp" }],
     ["path", { d: "M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7", key: "j28e5" }]
   ];
-  var Utensils = createLucideIcon("utensils", __iconNode89);
+  var Utensils = createLucideIcon("utensils", __iconNode91);
 
   // node_modules/lucide-react/dist/esm/icons/waves.js
-  var __iconNode90 = [
+  var __iconNode92 = [
     [
       "path",
       {
@@ -6578,10 +6644,10 @@ function doPost(e) {
       }
     ]
   ];
-  var Waves = createLucideIcon("waves", __iconNode90);
+  var Waves = createLucideIcon("waves", __iconNode92);
 
   // node_modules/lucide-react/dist/esm/icons/wine.js
-  var __iconNode91 = [
+  var __iconNode93 = [
     ["path", { d: "M8 22h8", key: "rmew8v" }],
     ["path", { d: "M7 10h10", key: "1101jm" }],
     ["path", { d: "M12 15v7", key: "t2xh3l" }],
@@ -6590,14 +6656,14 @@ function doPost(e) {
       { d: "M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z", key: "10ffi3" }
     ]
   ];
-  var Wine = createLucideIcon("wine", __iconNode91);
+  var Wine = createLucideIcon("wine", __iconNode93);
 
   // node_modules/lucide-react/dist/esm/icons/x.js
-  var __iconNode92 = [
+  var __iconNode94 = [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ];
-  var X = createLucideIcon("x", __iconNode92);
+  var X = createLucideIcon("x", __iconNode94);
 
   // src/components/DomaineLogo.tsx
   var import_jsx_runtime = __require("react/jsx-runtime");
@@ -7973,10 +8039,23 @@ function doPost(e) {
     }
     return t.date < today;
   }
-  function checklistFor(hk, zone) {
-    if (!zone) return hk.defaultChecklistId;
+  function momentOf(t) {
+    if (t.moment) return t.moment;
+    if (t.id.startsWith("auto_")) return "departure";
+    if (t.id.startsWith("arr_")) return "arrival";
+    return "other";
+  }
+  function checklistFor(hk, zone, moment = "other") {
+    const exists = (id) => id !== void 0 && (id === "" || hk.checklists.some((c) => c.id === id));
+    if (zone && moment !== "other") {
+      const perRoom = (moment === "departure" ? hk.roomChecklistDeparture : hk.roomChecklistArrival)[zone.id];
+      if (exists(perRoom)) return perRoom;
+      const general = moment === "departure" ? hk.departureChecklistId : hk.arrivalChecklistId;
+      if (general && exists(general)) return general;
+    }
+    if (!zone) return exists(hk.defaultChecklistId) ? hk.defaultChecklistId : hk.checklists[0]?.id || "";
     const chosen = hk.roomChecklist[zone.id];
-    if (chosen !== void 0 && (chosen === "" || hk.checklists.some((c) => c.id === chosen))) return chosen;
+    if (exists(chosen)) return chosen;
     if (!zone.isRoom && hk.checklists.some((c) => c.id === "espaces_communs")) return "espaces_communs";
     return hk.checklists.some((c) => c.id === hk.defaultChecklistId) ? hk.defaultChecklistId : hk.checklists[0]?.id || "";
   }
@@ -8035,6 +8114,7 @@ function doPost(e) {
       const zone = zoneById.get(t.zoneId);
       return {
         ...t,
+        moment: momentOf(t),
         stored: storedFlag,
         zoneName: zone?.name || t.zoneId || "Sans espace",
         zoneColor: zone?.color || NEUTRAL_ZONE_COLOR,
@@ -8051,10 +8131,10 @@ function doPost(e) {
     const nextArrival = (roomId, fromDate, excludeId) => (byRoom.get(roomId) || []).find((r) => r.id !== excludeId && r.checkIn >= fromDate);
     const previousDeparture = (roomId, beforeDate, excludeId) => (byRoom.get(roomId) || []).filter((r) => r.id !== excludeId && r.checkOut <= beforeDate).reduce((best, r) => !best || r.checkOut > best ? r.checkOut : best, null);
     const occupiedOn = (roomId, date, excludeId) => (byRoom.get(roomId) || []).some((r) => r.id !== excludeId && r.checkIn < date && r.checkOut > date);
-    if (hk.auto.enabled) {
+    if (hk.auto.enabled || hk.auto.arrivalCheck) {
       stays.forEach((r) => {
         const zone = zoneById.get(r.roomId);
-        if (inRange(r.checkOut)) {
+        if (hk.auto.enabled && inRange(r.checkOut)) {
           const id = `auto_${r.id}`;
           const next = nextArrival(r.roomId, r.checkOut, r.id);
           const derived = {
@@ -8076,12 +8156,13 @@ function doPost(e) {
                 {
                   ...blankTask(id, "auto", now),
                   ...derived,
-                  title: "Pr\xE9paration apr\xE8s d\xE9part",
+                  moment: "departure",
+                  title: "Apr\xE8s le d\xE9part",
                   time: hk.auto.time,
                   priorityId: defaultPriority,
                   statusId: defaultStatus,
                   assigneeId: hk.auto.assigneeId,
-                  checklistId: checklistFor(hk, zone),
+                  checklistId: checklistFor(hk, zone, "departure"),
                   estimatedMinutes: hk.auto.estimatedMinutes,
                   createdAt: "",
                   updatedAt: ""
@@ -8095,7 +8176,8 @@ function doPost(e) {
         if (hk.auto.arrivalCheck && inRange(r.checkIn) && !occupiedOn(r.roomId, r.checkIn, r.id)) {
           const prev = previousDeparture(r.roomId, r.checkIn, r.id);
           const gap = Math.max(1, hk.auto.arrivalCheckGapDays || 1);
-          if (prev && daysBetween2(prev, r.checkIn) < gap) return;
+          const stayedEmpty = !prev || daysBetween2(prev, r.checkIn) >= gap;
+          if (hk.auto.arrivalMode === "emptyOnly" && !stayedEmpty) return;
           const id = `arr_${r.id}`;
           const derived = {
             zoneId: r.roomId,
@@ -8116,13 +8198,14 @@ function doPost(e) {
                 {
                   ...blankTask(id, "auto", now),
                   ...derived,
-                  title: prev ? "V\xE9rification avant arriv\xE9e (chambre rest\xE9e vide)" : "V\xE9rification avant arriv\xE9e",
-                  time: "",
+                  moment: "arrival",
+                  title: prev && stayedEmpty ? "Avant l'arriv\xE9e (chambre rest\xE9e vide)" : "Avant l'arriv\xE9e",
+                  time: hk.auto.arrivalTaskTime,
                   priorityId: defaultPriority,
                   statusId: defaultStatus,
                   assigneeId: hk.auto.assigneeId,
-                  checklistId: checklistFor(hk, zone),
-                  estimatedMinutes: Math.round(hk.auto.estimatedMinutes / 2),
+                  checklistId: checklistFor(hk, zone, "arrival"),
+                  estimatedMinutes: hk.auto.arrivalEstimatedMinutes,
                   createdAt: "",
                   updatedAt: ""
                 },
@@ -8209,6 +8292,11 @@ function doPost(e) {
   }
 
   // src/modules/menage/types.ts
+  var MOMENT_LOOKS = {
+    departure: { label: "Apr\xE8s le d\xE9part", short: "Apr\xE8s d\xE9part", color: "#B45309" },
+    arrival: { label: "Avant l'arriv\xE9e", short: "Avant arriv\xE9e", color: "#0E7490" },
+    other: { label: "Autres t\xE2ches", short: "Autre", color: "#525252" }
+  };
   var CHECKLIST_CATEGORY_LABELS = {
     menage: "M\xE9nage",
     linge: "Literie et linge",
@@ -8255,6 +8343,30 @@ function doPost(e) {
 
   // src/modules/menage/shared.tsx
   var import_jsx_runtime5 = __require("react/jsx-runtime");
+  var MOMENT_ICONS = {
+    departure: LogOut,
+    arrival: LogIn,
+    other: null
+  };
+  var MomentBadge = ({ moment, iconOnly }) => {
+    const Icon2 = MOMENT_ICONS[moment];
+    if (!Icon2) return null;
+    const look2 = MOMENT_LOOKS[moment];
+    if (iconOnly) {
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { title: look2.label, style: { color: look2.color }, className: "shrink-0", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Icon2, { className: "w-3 h-3" }) });
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+      "span",
+      {
+        className: "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold whitespace-nowrap",
+        style: { background: `${look2.color}1F`, color: look2.color },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Icon2, { className: "w-3 h-3" }),
+          look2.short
+        ]
+      }
+    );
+  };
   function formatDay(iso, opts = { weekday: "short", day: "numeric", month: "short" }) {
     if (!iso) return "";
     const [y, m, d] = iso.split("-").map(Number);
@@ -8341,7 +8453,10 @@ function doPost(e) {
                     task.time
                   ] })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: `text-xs text-neutral-700 ${compact ? "truncate" : ""}`, children: task.title || "T\xE2che" })
+                /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: `flex items-center gap-1.5 min-w-0 text-xs text-neutral-700 ${compact ? "" : "flex-wrap mt-0.5"}`, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(MomentBadge, { moment: momentOf(task), iconOnly: compact }),
+                  (compact || task.title !== MOMENT_LOOKS[momentOf(task)].label) && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: compact ? "truncate" : "", children: task.title || "T\xE2che" })
+                ] })
               ] }),
               compact ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "w-2.5 h-2.5 rounded-full shrink-0 mt-1", style: { background: status.color }, title: status.label }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "flex flex-col items-end gap-1 shrink-0", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ColorBadge, { color: status.color, children: status.label }),
@@ -8470,6 +8585,7 @@ function doPost(e) {
     const zoneOptions = [...rooms.map((a) => ({ value: a.id, label: a.name })), ...draft.zones.map((z) => ({ value: z.id, label: z.name || "Espace" }))];
     const checklistOptions = [{ value: "", label: "Aucune" }, ...draft.checklists.map((c) => ({ value: c.id, label: c.name || "Sans nom" }))];
     const roomChecklistOptions = [{ value: "__default", label: "Check-list par d\xE9faut" }, ...checklistOptions];
+    const momentChecklistOptions = [{ value: "__default", label: "Celle du moment (ci-dessus)" }, ...checklistOptions];
     const allIds = () => [
       ...draft.statuses.map((s) => s.id),
       ...draft.priorities.map((p) => p.id),
@@ -8479,11 +8595,11 @@ function doPost(e) {
       ...draft.recurring.map((r) => r.id),
       ...settings.accommodations.map((a) => a.id)
     ];
-    const setRoomChecklist = (zoneId, value) => {
-      const roomChecklist = { ...draft.roomChecklist };
-      if (value === "__default") delete roomChecklist[zoneId];
-      else roomChecklist[zoneId] = value;
-      set({ roomChecklist });
+    const setRoomChecklist = (zoneId, value, key = "roomChecklist") => {
+      const map = { ...draft[key] };
+      if (value === "__default") delete map[zoneId];
+      else map[zoneId] = value;
+      set({ [key]: map });
     };
     const updateChecklist = (id, patch) => set({ checklists: draft.checklists.map((c) => c.id === id ? { ...c, ...patch } : c) });
     const updateRule = (id, patch) => set({ recurring: draft.recurring.map((r) => r.id === id ? { ...r, ...patch } : r) });
@@ -8500,31 +8616,77 @@ function doPost(e) {
     return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { children: [
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SectionTitle, { title: "M\xE9nage et pr\xE9paration", description: "T\xE2ches automatiques, espaces, check-lists, statuts et r\xE8gles de validation." }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(InfoNote, { children: [
-        "Une t\xE2che est propos\xE9e \xE0 chaque ",
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("strong", { children: "d\xE9part" }),
-        " d'un h\xE9bergement (avec la date de l'arriv\xE9e suivante comme \xE9ch\xE9ance), sans jamais modifier les r\xE9servations. Vous pouvez aussi ajouter des t\xE2ches \xE0 la main dans l'onglet \xAB M\xE9nage \xBB. Les rappels par e-mail arriveront avec l'acc\xE8s d\xE9di\xE9 des personnes."
+        "Pour chaque s\xE9jour, deux t\xE2ches distinctes sont propos\xE9es : ",
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("strong", { children: "apr\xE8s le d\xE9part" }),
+        " (remise en \xE9tat) et",
+        " ",
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("strong", { children: "avant l'arriv\xE9e" }),
+        " (mise en place), chacune avec sa check-list, sans jamais modifier les r\xE9servations. Vous pouvez aussi ajouter des t\xE2ches \xE0 la main dans l'onglet \xAB M\xE9nage \xBB. Les rappels par e-mail arriveront avec l'acc\xE8s d\xE9di\xE9 des personnes."
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "space-y-4", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Block, { title: "T\xE2ches automatiques li\xE9es aux s\xE9jours", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "space-y-3", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Block, { title: MOMENT_LOOKS.departure.label, description: "T\xE2che cr\xE9\xE9e le jour de chaque d\xE9part d'un h\xE9bergement.", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "space-y-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
             CheckboxRow,
             {
               checked: draft.auto.enabled,
               onChange: (v) => set({ auto: { ...draft.auto, enabled: v } }),
-              label: "Cr\xE9er une t\xE2che de pr\xE9paration \xE0 chaque d\xE9part"
+              label: "Cr\xE9er une t\xE2che \xAB apr\xE8s le d\xE9part \xBB \xE0 chaque d\xE9part",
+              hint: "\xC9ch\xE9ance : l'arriv\xE9e suivante dans la m\xEAme chambre"
             }
           ),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Heure souhait\xE9e (jour du d\xE9part)", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("input", { type: "time", value: draft.auto.time, onChange: (e) => set({ auto: { ...draft.auto, time: e.target.value } }), className: timeInput }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Dur\xE9e estim\xE9e", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(NumberInput, { value: draft.auto.estimatedMinutes, onChange: (v) => set({ auto: { ...draft.auto, estimatedMinutes: v ?? 0 } }), suffix: "min" }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Select, { value: draft.departureChecklistId, onChange: (v) => set({ departureChecklistId: v }), options: checklistOptions }) })
+          ] })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Block, { title: MOMENT_LOOKS.arrival.label, description: "T\xE2che cr\xE9\xE9e le jour de chaque arriv\xE9e dans un h\xE9bergement.", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "space-y-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
             CheckboxRow,
             {
               checked: draft.auto.arrivalCheck,
               onChange: (v) => set({ auto: { ...draft.auto, arrivalCheck: v } }),
-              label: "V\xE9rifier la chambre avant une arriv\xE9e quand elle est rest\xE9e vide",
-              hint: `Aucun d\xE9part dans les ${draft.auto.arrivalCheckGapDays} jours pr\xE9c\xE9dents`
+              label: "Cr\xE9er une t\xE2che \xAB avant l'arriv\xE9e \xBB"
             }
           ),
+          draft.auto.arrivalCheck && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex flex-col gap-1.5 pl-5", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("label", { className: "flex items-center gap-2 text-xs text-neutral-800 cursor-pointer", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                "input",
+                {
+                  type: "radio",
+                  checked: draft.auto.arrivalMode === "always",
+                  onChange: () => set({ auto: { ...draft.auto, arrivalMode: "always" } }),
+                  className: "accent-sy-325032"
+                }
+              ),
+              "Pour chaque arriv\xE9e"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("label", { className: "flex items-center gap-2 text-xs text-neutral-800 cursor-pointer", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                "input",
+                {
+                  type: "radio",
+                  checked: draft.auto.arrivalMode === "emptyOnly",
+                  onChange: () => set({ auto: { ...draft.auto, arrivalMode: "emptyOnly" } }),
+                  className: "accent-sy-325032"
+                }
+              ),
+              "Seulement quand la chambre est rest\xE9e vide depuis au moins ",
+              draft.auto.arrivalCheckGapDays,
+              " jour(s)"
+            ] })
+          ] }),
           /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Heure souhait\xE9e (jour du d\xE9part)", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("input", { type: "time", value: draft.auto.time, onChange: (e) => set({ auto: { ...draft.auto, time: e.target.value } }), className: timeInput }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Heure souhait\xE9e (jour de l'arriv\xE9e)", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "input",
+              {
+                type: "time",
+                value: draft.auto.arrivalTaskTime,
+                onChange: (e) => set({ auto: { ...draft.auto, arrivalTaskTime: e.target.value } }),
+                className: timeInput
+              }
+            ) }),
             /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Chambre pr\xEAte avant (heure d'arriv\xE9e)", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
               "input",
               {
@@ -8534,32 +8696,16 @@ function doPost(e) {
                 className: timeInput
               }
             ) }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Dur\xE9e estim\xE9e", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(NumberInput, { value: draft.auto.estimatedMinutes, onChange: (v) => set({ auto: { ...draft.auto, estimatedMinutes: v ?? 0 } }), suffix: "min" }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Priorit\xE9", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-              Select,
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Dur\xE9e estim\xE9e", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              NumberInput,
               {
-                value: draft.auto.priorityId,
-                onChange: (v) => set({ auto: { ...draft.auto, priorityId: v } }),
-                options: draft.priorities.map((p) => ({ value: p.id, label: p.label }))
+                value: draft.auto.arrivalEstimatedMinutes,
+                onChange: (v) => set({ auto: { ...draft.auto, arrivalEstimatedMinutes: v ?? 0 } }),
+                suffix: "min"
               }
             ) }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Attribu\xE9e \xE0", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-              Select,
-              {
-                value: draft.auto.assigneeId,
-                onChange: (v) => set({ auto: { ...draft.auto, assigneeId: v } }),
-                options: assigneeOptions(settings, draft.auto.assigneeId)
-              }
-            ) }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-              Field,
-              {
-                label: "T\xE2ches calcul\xE9es \xE0 partir du",
-                hint: draft.autoFrom ? void 0 : `Jour d'activation du module${settings.modules.housekeeping?.enabledSince ? ` (${settings.modules.housekeeping.enabledSince.split("-").reverse().join("/")})` : ""}`,
-                children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("input", { type: "date", value: draft.autoFrom, onChange: (e) => set({ autoFrom: e.target.value }), className: timeInput })
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Chambre rest\xE9e vide depuis", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Select, { value: draft.arrivalChecklistId, onChange: (v) => set({ arrivalChecklistId: v }), options: checklistOptions }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Chambre rest\xE9e vide depuis", hint: "Le titre de la t\xE2che le signale", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
               NumberInput,
               {
                 value: draft.auto.arrivalCheckGapDays,
@@ -8569,18 +8715,55 @@ function doPost(e) {
             ) })
           ] })
         ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Block, { title: "Commun aux t\xE2ches automatiques", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "space-y-3", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Priorit\xE9", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            Select,
+            {
+              value: draft.auto.priorityId,
+              onChange: (v) => set({ auto: { ...draft.auto, priorityId: v } }),
+              options: draft.priorities.map((p) => ({ value: p.id, label: p.label }))
+            }
+          ) }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Attribu\xE9e \xE0", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            Select,
+            {
+              value: draft.auto.assigneeId,
+              onChange: (v) => set({ auto: { ...draft.auto, assigneeId: v } }),
+              options: assigneeOptions(settings, draft.auto.assigneeId)
+            }
+          ) }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            Field,
+            {
+              label: "T\xE2ches calcul\xE9es \xE0 partir du",
+              hint: draft.autoFrom ? void 0 : `Jour d'activation du module${settings.modules.housekeeping?.enabledSince ? ` (${settings.modules.housekeeping.enabledSince.split("-").reverse().join("/")})` : ""}`,
+              children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("input", { type: "date", value: draft.autoFrom, onChange: (e) => set({ autoFrom: e.target.value }), className: timeInput })
+            }
+          )
+        ] }) }) }),
         /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Block, { title: "Espaces \xE0 entretenir", description: "Les h\xE9bergements viennent de la rubrique \xAB H\xE9bergements \xBB. Ajoutez ici les espaces communs.", children: [
           /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "space-y-2", children: [
-            rooms.map((a) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex flex-col sm:flex-row sm:items-center gap-2", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "sm:w-48 text-xs font-semibold text-neutral-800 truncate", children: a.name }),
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex-1", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-                Select,
-                {
-                  value: draft.roomChecklist[a.id] ?? "__default",
-                  onChange: (v) => setRoomChecklist(a.id, v),
-                  options: roomChecklistOptions
-                }
-              ) })
+            rooms.map((a) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex flex-col sm:flex-row sm:items-start gap-2", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "sm:w-48 sm:pt-6 text-xs font-semibold text-neutral-800 truncate", children: a.name }),
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: MOMENT_LOOKS.departure.label, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                  Select,
+                  {
+                    value: draft.roomChecklistDeparture[a.id] ?? "__default",
+                    onChange: (v) => setRoomChecklist(a.id, v, "roomChecklistDeparture"),
+                    options: momentChecklistOptions
+                  }
+                ) }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: MOMENT_LOOKS.arrival.label, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                  Select,
+                  {
+                    value: draft.roomChecklistArrival[a.id] ?? "__default",
+                    onChange: (v) => setRoomChecklist(a.id, v, "roomChecklistArrival"),
+                    options: momentChecklistOptions
+                  }
+                ) }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Autres t\xE2ches", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Select, { value: draft.roomChecklist[a.id] ?? "__default", onChange: (v) => setRoomChecklist(a.id, v), options: roomChecklistOptions }) })
+              ] })
             ] }, a.id)),
             draft.zones.map((z) => /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex flex-col sm:flex-row sm:items-center gap-2", children: [
               /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "sm:w-48 flex items-center gap-1.5", children: [
@@ -8613,7 +8796,7 @@ function doPost(e) {
           )
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(Block, { title: "Check-lists", description: "Mod\xE8les coch\xE9s pendant le m\xE9nage. Chaque chambre ou espace utilise celle choisie ci-dessus.", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list par d\xE9faut", className: "max-w-sm mb-3", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "Check-list par d\xE9faut (t\xE2ches ajout\xE9es \xE0 la main et r\xE9currentes)", className: "max-w-sm mb-3", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
             Select,
             {
               value: draft.defaultChecklistId,
@@ -8654,7 +8837,9 @@ function doPost(e) {
                       const checklists = draft.checklists.filter((x) => x.id !== c.id);
                       set({
                         checklists,
-                        defaultChecklistId: draft.defaultChecklistId === c.id ? checklists[0]?.id || "" : draft.defaultChecklistId
+                        defaultChecklistId: draft.defaultChecklistId === c.id ? checklists[0]?.id || "" : draft.defaultChecklistId,
+                        departureChecklistId: draft.departureChecklistId === c.id ? "" : draft.departureChecklistId,
+                        arrivalChecklistId: draft.arrivalChecklistId === c.id ? "" : draft.arrivalChecklistId
                       });
                     },
                     children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Trash2, { className: "w-3.5 h-3.5" })
@@ -10573,6 +10758,7 @@ function doPost(e) {
           /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("h2", { className: "font-serif font-bold text-lg text-neutral-900 truncate", children: isNew ? "Nouvelle t\xE2che de m\xE9nage" : zones.find((z) => z.id === draft.zoneId)?.name || "T\xE2che de m\xE9nage" }),
           /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex items-center gap-1.5 flex-wrap mt-0.5", children: [
             !isNew && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(ColorBadge, { color: status.color, children: status.label }),
+            !isNew && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(MomentBadge, { moment: momentOf(draft) }),
             /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { className: "text-[11px] text-neutral-500", children: [
               originLabel,
               !isNew && ` \xB7 ${formatDay(draft.date, { weekday: "long", day: "numeric", month: "long" })}`
@@ -10716,6 +10902,33 @@ function doPost(e) {
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+            Field,
+            {
+              label: "Moment",
+              className: "sm:col-span-2",
+              hint: draft.origin === "auto" ? "Fix\xE9 par le s\xE9jour" : "Pour classer la t\xE2che avec les d\xE9parts ou les arriv\xE9es",
+              children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "flex flex-wrap gap-1.5", children: ["departure", "arrival", "other"].map((m) => {
+                const active = momentOf(draft) === m;
+                return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+                  "button",
+                  {
+                    type: "button",
+                    disabled: draft.origin === "auto",
+                    onClick: () => change({
+                      moment: m,
+                      // Sans check-list choisie, on propose celle du moment
+                      ...draft.checklistId === "" && m !== "other" ? { checklistId: m === "departure" ? hk.departureChecklistId : hk.arrivalChecklistId } : {}
+                    }),
+                    className: `px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer disabled:cursor-not-allowed ${active ? "text-white border-transparent" : "bg-white text-neutral-700 border-neutral-200 disabled:opacity-50"}`,
+                    style: active ? { background: MOMENT_LOOKS[m].color } : void 0,
+                    children: MOMENT_LOOKS[m].label
+                  },
+                  m
+                );
+              }) })
+            }
+          ),
           /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(Field, { label: "T\xE2che", className: "sm:col-span-2", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(TextInput, { value: draft.title, onChange: (v) => change({ title: v }), placeholder: "Ex. : M\xE9nage complet, vitres\u2026" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(Field, { label: "Espace", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(Select, { value: draft.zoneId, onChange: (v) => change({ zoneId: v }), options: zoneOptions }) }),
           /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(Field, { label: "Attribu\xE9e \xE0", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
@@ -10877,6 +11090,7 @@ function doPost(e) {
     const [zoneId, setZoneId] = (0, import_react19.useState)("");
     const [assignee, setAssignee] = (0, import_react19.useState)("all");
     const [statusFilter, setStatusFilter] = (0, import_react19.useState)("open");
+    const [momentFilter, setMomentFilter] = (0, import_react19.useState)("all");
     const [openId, setOpenId] = (0, import_react19.useState)(null);
     const [creating, setCreating] = (0, import_react19.useState)(null);
     const zones = (0, import_react19.useMemo)(() => getZones(settings, hk), [settings, hk]);
@@ -10897,6 +11111,7 @@ function doPost(e) {
     const visible = (t) => {
       if (t.dismissed) return false;
       if (assignee !== "all" && t.assigneeId !== assignee) return false;
+      if (momentFilter !== "all" && momentOf(t) !== momentFilter) return false;
       if (statusFilter === "open") return !isDone(hk, t);
       if (statusFilter !== "all") return t.statusId === statusFilter;
       return true;
@@ -10954,10 +11169,25 @@ function doPost(e) {
           /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "text-[11px] font-bold uppercase tracking-wide text-red-700 mb-2", children: "En retard" }),
           /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2.5", children: lateHere.map((t) => card(t, { showDate: true })) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { children: [
-          lateHere.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2", children: "Ce jour" }),
-          dayTasks.length === 0 ? emptyState(day) : /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2.5", children: dayTasks.map((t) => card(t)) })
-        ] })
+        dayTasks.length === 0 ? emptyState(day) : ["departure", "arrival", "other"].map((moment) => {
+          const group = dayTasks.filter((t) => momentOf(t) === moment);
+          if (group.length === 0) return null;
+          const Icon2 = MOMENT_ICONS[moment];
+          return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
+              "div",
+              {
+                className: "flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide mb-2",
+                style: { color: MOMENT_LOOKS[moment].color },
+                children: [
+                  Icon2 && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(Icon2, { className: "w-3.5 h-3.5" }),
+                  moment === "departure" ? "Apr\xE8s les d\xE9parts" : moment === "arrival" ? "Avant les arriv\xE9es" : "Autres t\xE2ches"
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2.5", children: group.map((t) => card(t)) })
+          ] }, moment);
+        })
       ] });
     };
     const renderWeek = () => /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-7 gap-2.5", children: Array.from({ length: 7 }, (_, i) => addDays(start, i)).map((date) => {
@@ -10999,7 +11229,9 @@ function doPost(e) {
     }) });
     const renderRoom = () => {
       if (!currentZone) return emptyState(today);
-      const zoneTasks = allTasks.filter((t) => t.zoneId === currentZone.id && !t.dismissed && (assignee === "all" || t.assigneeId === assignee));
+      const zoneTasks = allTasks.filter(
+        (t) => t.zoneId === currentZone.id && !t.dismissed && (assignee === "all" || t.assigneeId === assignee) && (momentFilter === "all" || momentOf(t) === momentFilter)
+      );
       const upcoming = zoneTasks.filter((t) => t.date >= today && !isDone(hk, t));
       const lateZone = zoneTasks.filter((t) => t.date < today && !isDone(hk, t));
       const history = zoneTasks.filter((t) => isDone(hk, t)).reverse();
@@ -11122,6 +11354,21 @@ function doPost(e) {
             /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: "all", children: "Toutes les personnes" }),
             assigneeOptions(settings).map((o) => /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: o.value, children: o.label }, o.value || "none"))
           ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
+            "select",
+            {
+              value: momentFilter,
+              onChange: (e) => setMomentFilter(e.target.value),
+              className: selectClass,
+              "aria-label": "Moment",
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: "all", children: "Avant et apr\xE8s les s\xE9jours" }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: "departure", children: "Apr\xE8s les d\xE9parts" }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: "arrival", children: "Avant les arriv\xE9es" }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: "other", children: "Autres t\xE2ches" })
+              ]
+            }
+          ),
           mode !== "room" && /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("select", { value: statusFilter, onChange: (e) => setStatusFilter(e.target.value), className: selectClass, "aria-label": "Statut", children: [
             /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: "open", children: "Non termin\xE9es" }),
             /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("option", { value: "all", children: "Toutes" }),
@@ -25702,6 +25949,8 @@ lucide-react/dist/esm/icons/layers.js:
 lucide-react/dist/esm/icons/layout-dashboard.js:
 lucide-react/dist/esm/icons/list-filter.js:
 lucide-react/dist/esm/icons/lock.js:
+lucide-react/dist/esm/icons/log-in.js:
+lucide-react/dist/esm/icons/log-out.js:
 lucide-react/dist/esm/icons/mail.js:
 lucide-react/dist/esm/icons/map-pin.js:
 lucide-react/dist/esm/icons/menu.js:
