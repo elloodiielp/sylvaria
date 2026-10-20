@@ -381,6 +381,11 @@ var DomaineAppBundle = (() => {
     }
     return list2;
   }
+  function stayMealRange(momentId, stay) {
+    if (momentId === "breakfast") return { from: shiftDate(stay.checkIn, 1), to: stay.checkOut };
+    if (momentId === "lunch") return { from: stay.checkIn, to: stay.checkOut };
+    return { from: stay.checkIn, to: shiftDate(stay.checkOut, -1) };
+  }
   function menuPhotoIds(menu) {
     const ids = [];
     (menu?.moments || []).forEach((m) => m.groups.forEach((g) => g.items.forEach((i) => i.photo && !ids.includes(i.photo) && ids.push(i.photo))));
@@ -5268,8 +5273,20 @@ var DomaineAppBundle = (() => {
   ];
   var Menu = createLucideIcon("menu", __iconNode68);
 
-  // node_modules/lucide-react/dist/esm/icons/message-square-plus.js
+  // node_modules/lucide-react/dist/esm/icons/message-circle.js
   var __iconNode69 = [
+    [
+      "path",
+      {
+        d: "M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719",
+        key: "1sd12s"
+      }
+    ]
+  ];
+  var MessageCircle = createLucideIcon("message-circle", __iconNode69);
+
+  // node_modules/lucide-react/dist/esm/icons/message-square-plus.js
+  var __iconNode70 = [
     [
       "path",
       {
@@ -5280,10 +5297,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 8v6", key: "1ib9pf" }],
     ["path", { d: "M9 11h6", key: "1fldmi" }]
   ];
-  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode69);
+  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode70);
 
   // node_modules/lucide-react/dist/esm/icons/message-square.js
-  var __iconNode70 = [
+  var __iconNode71 = [
     [
       "path",
       {
@@ -5292,14 +5309,14 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var MessageSquare = createLucideIcon("message-square", __iconNode70);
+  var MessageSquare = createLucideIcon("message-square", __iconNode71);
 
   // node_modules/lucide-react/dist/esm/icons/minus.js
-  var __iconNode71 = [["path", { d: "M5 12h14", key: "1ays0h" }]];
-  var Minus = createLucideIcon("minus", __iconNode71);
+  var __iconNode72 = [["path", { d: "M5 12h14", key: "1ays0h" }]];
+  var Minus = createLucideIcon("minus", __iconNode72);
 
   // node_modules/lucide-react/dist/esm/icons/pen-line.js
-  var __iconNode72 = [
+  var __iconNode73 = [
     ["path", { d: "M13 21h8", key: "1jsn5i" }],
     [
       "path",
@@ -5309,10 +5326,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var PenLine = createLucideIcon("pen-line", __iconNode72);
+  var PenLine = createLucideIcon("pen-line", __iconNode73);
 
   // node_modules/lucide-react/dist/esm/icons/pen.js
-  var __iconNode73 = [
+  var __iconNode74 = [
     [
       "path",
       {
@@ -5321,10 +5338,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Pen = createLucideIcon("pen", __iconNode73);
+  var Pen = createLucideIcon("pen", __iconNode74);
 
   // node_modules/lucide-react/dist/esm/icons/pencil.js
-  var __iconNode74 = [
+  var __iconNode75 = [
     [
       "path",
       {
@@ -5334,18 +5351,18 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "m15 5 4 4", key: "1mk7zo" }]
   ];
-  var Pencil = createLucideIcon("pencil", __iconNode74);
+  var Pencil = createLucideIcon("pencil", __iconNode75);
 
   // node_modules/lucide-react/dist/esm/icons/percent.js
-  var __iconNode75 = [
+  var __iconNode76 = [
     ["line", { x1: "19", x2: "5", y1: "5", y2: "19", key: "1x9vlm" }],
     ["circle", { cx: "6.5", cy: "6.5", r: "2.5", key: "4mh3h7" }],
     ["circle", { cx: "17.5", cy: "17.5", r: "2.5", key: "1mdrzq" }]
   ];
-  var Percent = createLucideIcon("percent", __iconNode75);
+  var Percent = createLucideIcon("percent", __iconNode76);
 
   // node_modules/lucide-react/dist/esm/icons/phone.js
-  var __iconNode76 = [
+  var __iconNode77 = [
     [
       "path",
       {
@@ -5354,10 +5371,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Phone = createLucideIcon("phone", __iconNode76);
+  var Phone = createLucideIcon("phone", __iconNode77);
 
   // node_modules/lucide-react/dist/esm/icons/play.js
-  var __iconNode77 = [
+  var __iconNode78 = [
     [
       "path",
       {
@@ -5366,24 +5383,24 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Play = createLucideIcon("play", __iconNode77);
+  var Play = createLucideIcon("play", __iconNode78);
 
   // node_modules/lucide-react/dist/esm/icons/plus.js
-  var __iconNode78 = [
+  var __iconNode79 = [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "M12 5v14", key: "s699le" }]
   ];
-  var Plus = createLucideIcon("plus", __iconNode78);
+  var Plus = createLucideIcon("plus", __iconNode79);
 
   // node_modules/lucide-react/dist/esm/icons/power.js
-  var __iconNode79 = [
+  var __iconNode80 = [
     ["path", { d: "M12 2v10", key: "mnfbl" }],
     ["path", { d: "M18.4 6.6a9 9 0 1 1-12.77.04", key: "obofu9" }]
   ];
-  var Power = createLucideIcon("power", __iconNode79);
+  var Power = createLucideIcon("power", __iconNode80);
 
   // node_modules/lucide-react/dist/esm/icons/printer.js
-  var __iconNode80 = [
+  var __iconNode81 = [
     [
       "path",
       {
@@ -5394,10 +5411,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6", key: "1itne7" }],
     ["rect", { x: "6", y: "14", width: "12", height: "8", rx: "1", key: "1ue0tg" }]
   ];
-  var Printer = createLucideIcon("printer", __iconNode80);
+  var Printer = createLucideIcon("printer", __iconNode81);
 
   // node_modules/lucide-react/dist/esm/icons/quote.js
-  var __iconNode81 = [
+  var __iconNode82 = [
     [
       "path",
       {
@@ -5413,10 +5430,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Quote = createLucideIcon("quote", __iconNode81);
+  var Quote = createLucideIcon("quote", __iconNode82);
 
   // node_modules/lucide-react/dist/esm/icons/receipt.js
-  var __iconNode82 = [
+  var __iconNode83 = [
     [
       "path",
       { d: "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z", key: "q3az6g" }
@@ -5424,26 +5441,26 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8", key: "1h4pet" }],
     ["path", { d: "M12 17.5v-11", key: "1jc1ny" }]
   ];
-  var Receipt = createLucideIcon("receipt", __iconNode82);
+  var Receipt = createLucideIcon("receipt", __iconNode83);
 
   // node_modules/lucide-react/dist/esm/icons/refresh-cw.js
-  var __iconNode83 = [
+  var __iconNode84 = [
     ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
     ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
     ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
     ["path", { d: "M8 16H3v5", key: "1cv678" }]
   ];
-  var RefreshCw = createLucideIcon("refresh-cw", __iconNode83);
+  var RefreshCw = createLucideIcon("refresh-cw", __iconNode84);
 
   // node_modules/lucide-react/dist/esm/icons/rotate-ccw.js
-  var __iconNode84 = [
+  var __iconNode85 = [
     ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
     ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
   ];
-  var RotateCcw = createLucideIcon("rotate-ccw", __iconNode84);
+  var RotateCcw = createLucideIcon("rotate-ccw", __iconNode85);
 
   // node_modules/lucide-react/dist/esm/icons/save.js
-  var __iconNode85 = [
+  var __iconNode86 = [
     [
       "path",
       {
@@ -5454,10 +5471,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7", key: "1ydtos" }],
     ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
   ];
-  var Save = createLucideIcon("save", __iconNode85);
+  var Save = createLucideIcon("save", __iconNode86);
 
   // node_modules/lucide-react/dist/esm/icons/scroll-text.js
-  var __iconNode86 = [
+  var __iconNode87 = [
     ["path", { d: "M15 12h-5", key: "r7krc0" }],
     ["path", { d: "M15 8h-5", key: "1khuty" }],
     ["path", { d: "M19 17V5a2 2 0 0 0-2-2H4", key: "zz82l3" }],
@@ -5469,17 +5486,17 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var ScrollText = createLucideIcon("scroll-text", __iconNode86);
+  var ScrollText = createLucideIcon("scroll-text", __iconNode87);
 
   // node_modules/lucide-react/dist/esm/icons/search.js
-  var __iconNode87 = [
+  var __iconNode88 = [
     ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
   ];
-  var Search = createLucideIcon("search", __iconNode87);
+  var Search = createLucideIcon("search", __iconNode88);
 
   // node_modules/lucide-react/dist/esm/icons/send.js
-  var __iconNode88 = [
+  var __iconNode89 = [
     [
       "path",
       {
@@ -5489,19 +5506,19 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "m21.854 2.147-10.94 10.939", key: "12cjpa" }]
   ];
-  var Send = createLucideIcon("send", __iconNode88);
+  var Send = createLucideIcon("send", __iconNode89);
 
   // node_modules/lucide-react/dist/esm/icons/settings-2.js
-  var __iconNode89 = [
+  var __iconNode90 = [
     ["path", { d: "M14 17H5", key: "gfn3mx" }],
     ["path", { d: "M19 7h-9", key: "6i9tg" }],
     ["circle", { cx: "17", cy: "17", r: "3", key: "18b49y" }],
     ["circle", { cx: "7", cy: "7", r: "3", key: "dfmy0x" }]
   ];
-  var Settings2 = createLucideIcon("settings-2", __iconNode89);
+  var Settings2 = createLucideIcon("settings-2", __iconNode90);
 
   // node_modules/lucide-react/dist/esm/icons/settings.js
-  var __iconNode90 = [
+  var __iconNode91 = [
     [
       "path",
       {
@@ -5511,10 +5528,10 @@ var DomaineAppBundle = (() => {
     ],
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ];
-  var Settings = createLucideIcon("settings", __iconNode90);
+  var Settings = createLucideIcon("settings", __iconNode91);
 
   // node_modules/lucide-react/dist/esm/icons/shield-alert.js
-  var __iconNode91 = [
+  var __iconNode92 = [
     [
       "path",
       {
@@ -5525,10 +5542,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 8v4", key: "1got3b" }],
     ["path", { d: "M12 16h.01", key: "1drbdi" }]
   ];
-  var ShieldAlert = createLucideIcon("shield-alert", __iconNode91);
+  var ShieldAlert = createLucideIcon("shield-alert", __iconNode92);
 
   // node_modules/lucide-react/dist/esm/icons/shield-check.js
-  var __iconNode92 = [
+  var __iconNode93 = [
     [
       "path",
       {
@@ -5538,10 +5555,10 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ];
-  var ShieldCheck = createLucideIcon("shield-check", __iconNode92);
+  var ShieldCheck = createLucideIcon("shield-check", __iconNode93);
 
   // node_modules/lucide-react/dist/esm/icons/shield-off.js
-  var __iconNode93 = [
+  var __iconNode94 = [
     ["path", { d: "m2 2 20 20", key: "1ooewy" }],
     [
       "path",
@@ -5558,10 +5575,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var ShieldOff = createLucideIcon("shield-off", __iconNode93);
+  var ShieldOff = createLucideIcon("shield-off", __iconNode94);
 
   // node_modules/lucide-react/dist/esm/icons/shopping-basket.js
-  var __iconNode94 = [
+  var __iconNode95 = [
     ["path", { d: "m15 11-1 9", key: "5wnq3a" }],
     ["path", { d: "m19 11-4-7", key: "cnml18" }],
     ["path", { d: "M2 11h20", key: "3eubbj" }],
@@ -5570,10 +5587,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "m5 11 4-7", key: "116ra9" }],
     ["path", { d: "m9 11 1 9", key: "1ojof7" }]
   ];
-  var ShoppingBasket = createLucideIcon("shopping-basket", __iconNode94);
+  var ShoppingBasket = createLucideIcon("shopping-basket", __iconNode95);
 
   // node_modules/lucide-react/dist/esm/icons/sliders-horizontal.js
-  var __iconNode95 = [
+  var __iconNode96 = [
     ["path", { d: "M10 5H3", key: "1qgfaw" }],
     ["path", { d: "M12 19H3", key: "yhmn1j" }],
     ["path", { d: "M14 3v4", key: "1sua03" }],
@@ -5584,10 +5601,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M8 10v4", key: "tgpxqk" }],
     ["path", { d: "M8 12H3", key: "a7s4jb" }]
   ];
-  var SlidersHorizontal = createLucideIcon("sliders-horizontal", __iconNode95);
+  var SlidersHorizontal = createLucideIcon("sliders-horizontal", __iconNode96);
 
   // node_modules/lucide-react/dist/esm/icons/sparkles.js
-  var __iconNode96 = [
+  var __iconNode97 = [
     [
       "path",
       {
@@ -5599,10 +5616,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M22 4h-4", key: "gwowj6" }],
     ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }]
   ];
-  var Sparkles = createLucideIcon("sparkles", __iconNode96);
+  var Sparkles = createLucideIcon("sparkles", __iconNode97);
 
   // node_modules/lucide-react/dist/esm/icons/square-pen.js
-  var __iconNode97 = [
+  var __iconNode98 = [
     ["path", { d: "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7", key: "1m0v6g" }],
     [
       "path",
@@ -5612,10 +5629,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var SquarePen = createLucideIcon("square-pen", __iconNode97);
+  var SquarePen = createLucideIcon("square-pen", __iconNode98);
 
   // node_modules/lucide-react/dist/esm/icons/star.js
-  var __iconNode98 = [
+  var __iconNode99 = [
     [
       "path",
       {
@@ -5624,19 +5641,19 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Star = createLucideIcon("star", __iconNode98);
+  var Star = createLucideIcon("star", __iconNode99);
 
   // node_modules/lucide-react/dist/esm/icons/table-properties.js
-  var __iconNode99 = [
+  var __iconNode100 = [
     ["path", { d: "M15 3v18", key: "14nvp0" }],
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M21 9H3", key: "1338ky" }],
     ["path", { d: "M21 15H3", key: "9uk58r" }]
   ];
-  var TableProperties = createLucideIcon("table-properties", __iconNode99);
+  var TableProperties = createLucideIcon("table-properties", __iconNode100);
 
   // node_modules/lucide-react/dist/esm/icons/thumbs-up.js
-  var __iconNode100 = [
+  var __iconNode101 = [
     ["path", { d: "M7 10v12", key: "1qc93n" }],
     [
       "path",
@@ -5646,27 +5663,27 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode100);
+  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode101);
 
   // node_modules/lucide-react/dist/esm/icons/trash-2.js
-  var __iconNode101 = [
+  var __iconNode102 = [
     ["path", { d: "M10 11v6", key: "nco0om" }],
     ["path", { d: "M14 11v6", key: "outv1u" }],
     ["path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6", key: "miytrc" }],
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", key: "e791ji" }]
   ];
-  var Trash2 = createLucideIcon("trash-2", __iconNode101);
+  var Trash2 = createLucideIcon("trash-2", __iconNode102);
 
   // node_modules/lucide-react/dist/esm/icons/trending-up.js
-  var __iconNode102 = [
+  var __iconNode103 = [
     ["path", { d: "M16 7h6v6", key: "box55l" }],
     ["path", { d: "m22 7-8.5 8.5-5-5L2 17", key: "1t1m79" }]
   ];
-  var TrendingUp = createLucideIcon("trending-up", __iconNode102);
+  var TrendingUp = createLucideIcon("trending-up", __iconNode103);
 
   // node_modules/lucide-react/dist/esm/icons/triangle-alert.js
-  var __iconNode103 = [
+  var __iconNode104 = [
     [
       "path",
       {
@@ -5677,56 +5694,56 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 9v4", key: "juzpu7" }],
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ];
-  var TriangleAlert = createLucideIcon("triangle-alert", __iconNode103);
+  var TriangleAlert = createLucideIcon("triangle-alert", __iconNode104);
 
   // node_modules/lucide-react/dist/esm/icons/undo-2.js
-  var __iconNode104 = [
+  var __iconNode105 = [
     ["path", { d: "M9 14 4 9l5-5", key: "102s5s" }],
     ["path", { d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11", key: "f3b9sd" }]
   ];
-  var Undo2 = createLucideIcon("undo-2", __iconNode104);
+  var Undo2 = createLucideIcon("undo-2", __iconNode105);
 
   // node_modules/lucide-react/dist/esm/icons/upload.js
-  var __iconNode105 = [
+  var __iconNode106 = [
     ["path", { d: "M12 3v12", key: "1x0j5s" }],
     ["path", { d: "m17 8-5-5-5 5", key: "7q97r8" }],
     ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }]
   ];
-  var Upload = createLucideIcon("upload", __iconNode105);
+  var Upload = createLucideIcon("upload", __iconNode106);
 
   // node_modules/lucide-react/dist/esm/icons/user-check.js
-  var __iconNode106 = [
+  var __iconNode107 = [
     ["path", { d: "m16 11 2 2 4-4", key: "9rsbq5" }],
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }]
   ];
-  var UserCheck = createLucideIcon("user-check", __iconNode106);
+  var UserCheck = createLucideIcon("user-check", __iconNode107);
 
   // node_modules/lucide-react/dist/esm/icons/user-round.js
-  var __iconNode107 = [
+  var __iconNode108 = [
     ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
     ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
   ];
-  var UserRound = createLucideIcon("user-round", __iconNode107);
+  var UserRound = createLucideIcon("user-round", __iconNode108);
 
   // node_modules/lucide-react/dist/esm/icons/user.js
-  var __iconNode108 = [
+  var __iconNode109 = [
     ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
     ["circle", { cx: "12", cy: "7", r: "4", key: "17ys0d" }]
   ];
-  var User2 = createLucideIcon("user", __iconNode108);
+  var User2 = createLucideIcon("user", __iconNode109);
 
   // node_modules/lucide-react/dist/esm/icons/users.js
-  var __iconNode109 = [
+  var __iconNode110 = [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["path", { d: "M16 3.128a4 4 0 0 1 0 7.744", key: "16gr8j" }],
     ["path", { d: "M22 21v-2a4 4 0 0 0-3-3.87", key: "kshegd" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }]
   ];
-  var Users = createLucideIcon("users", __iconNode109);
+  var Users = createLucideIcon("users", __iconNode110);
 
   // node_modules/lucide-react/dist/esm/icons/utensils-crossed.js
-  var __iconNode110 = [
+  var __iconNode111 = [
     ["path", { d: "m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8", key: "n7qcjb" }],
     [
       "path",
@@ -5735,18 +5752,18 @@ var DomaineAppBundle = (() => {
     ["path", { d: "m2.1 21.8 6.4-6.3", key: "yn04lh" }],
     ["path", { d: "m19 5-7 7", key: "194lzd" }]
   ];
-  var UtensilsCrossed = createLucideIcon("utensils-crossed", __iconNode110);
+  var UtensilsCrossed = createLucideIcon("utensils-crossed", __iconNode111);
 
   // node_modules/lucide-react/dist/esm/icons/utensils.js
-  var __iconNode111 = [
+  var __iconNode112 = [
     ["path", { d: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2", key: "cjf0a3" }],
     ["path", { d: "M7 2v20", key: "1473qp" }],
     ["path", { d: "M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7", key: "j28e5" }]
   ];
-  var Utensils = createLucideIcon("utensils", __iconNode111);
+  var Utensils = createLucideIcon("utensils", __iconNode112);
 
   // node_modules/lucide-react/dist/esm/icons/waves.js
-  var __iconNode112 = [
+  var __iconNode113 = [
     [
       "path",
       {
@@ -5769,19 +5786,19 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Waves = createLucideIcon("waves", __iconNode112);
+  var Waves = createLucideIcon("waves", __iconNode113);
 
   // node_modules/lucide-react/dist/esm/icons/wifi.js
-  var __iconNode113 = [
+  var __iconNode114 = [
     ["path", { d: "M12 20h.01", key: "zekei9" }],
     ["path", { d: "M2 8.82a15 15 0 0 1 20 0", key: "dnpr2z" }],
     ["path", { d: "M5 12.859a10 10 0 0 1 14 0", key: "1x1e6c" }],
     ["path", { d: "M8.5 16.429a5 5 0 0 1 7 0", key: "1bycff" }]
   ];
-  var Wifi = createLucideIcon("wifi", __iconNode113);
+  var Wifi = createLucideIcon("wifi", __iconNode114);
 
   // node_modules/lucide-react/dist/esm/icons/wine.js
-  var __iconNode114 = [
+  var __iconNode115 = [
     ["path", { d: "M8 22h8", key: "rmew8v" }],
     ["path", { d: "M7 10h10", key: "1101jm" }],
     ["path", { d: "M12 15v7", key: "t2xh3l" }],
@@ -5790,14 +5807,14 @@ var DomaineAppBundle = (() => {
       { d: "M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z", key: "10ffi3" }
     ]
   ];
-  var Wine = createLucideIcon("wine", __iconNode114);
+  var Wine = createLucideIcon("wine", __iconNode115);
 
   // node_modules/lucide-react/dist/esm/icons/x.js
-  var __iconNode115 = [
+  var __iconNode116 = [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ];
-  var X = createLucideIcon("x", __iconNode115);
+  var X = createLucideIcon("x", __iconNode116);
 
   // src/modules/menage/actions.ts
   var nowIso = () => (/* @__PURE__ */ new Date()).toISOString();
@@ -7168,7 +7185,7 @@ var DomaineAppBundle = (() => {
   }
   function getAppsScriptCode() {
     return `// =========================================================================
-// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V13)
+// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V14)
 // =========================================================================
 // Instructions d'installation (1 minute) :
 // 1. Dans votre Google Sheet, allez dans : Extensions > Apps Script
@@ -7223,7 +7240,11 @@ var DomaineAppBundle = (() => {
 // V13 : commande des repas depuis le livret (onglet "Repas_Commandes", e-mail \xE0 chaque commande) ;
 // lien de s\xE9jour (&r=\u2026) envoy\xE9 depuis la r\xE9servation : jours du s\xE9jour, commandes rattach\xE9es \xE0 la
 // r\xE9servation, suivi et annulation par le voyageur avant l'heure limite.
-// Mise \xE0 jour depuis la V10, V11 ou V12 : collez TOUT ce code (jusqu'\xE0 la derni\xE8re ligne), puis
+//
+// V14 : le petit-d\xE9jeuner ne se commande jamais pour le jour de l'arriv\xE9e (du lendemain au jour du
+// d\xE9part), le d\xE9jeuner de l'arriv\xE9e au d\xE9part, les autres repas de l'arriv\xE9e \xE0 la veille du d\xE9part ; e-mail du lien de s\xE9jour
+// mis en forme (bouton cliquable) envoy\xE9 depuis la fiche de la r\xE9servation.
+// Mise \xE0 jour depuis la V10, V11, V12 ou V13 : collez TOUT ce code (jusqu'\xE0 la derni\xE8re ligne), puis
 // D\xE9ployer > G\xE9rer les d\xE9ploiements > crayon > Nouvelle version > D\xE9ployer (aucune nouvelle autorisation).
 // =========================================================================
 
@@ -7913,7 +7934,7 @@ function doPost(e) {
 // V10 : ACC\xC8S D\xC9DI\xC9 DES PERSONNES, PHOTOS (GOOGLE DRIVE), RAPPELS PAR E-MAIL, CL\xC9
 // =========================================================================
 
-var CONNECTOR_VERSION = 13;
+var CONNECTOR_VERSION = 14;
 var ADMIN_KEY_PROP = "CLE_ADMIN";
 var PHOTO_FOLDER_PROP = "DOSSIER_PHOTOS_MENAGE";
 var PHOTO_FOLDER_NAME = "Domaine Sylvaria - Photos m\xE9nage";
@@ -8087,6 +8108,11 @@ function routePostV10_(e, data) {
     if (action === "mealOrderAttach") {
       if (!isAdminRequest_(e, data)) return keyRequiredResponse_();
       return attachMealOrder_(data.id, data.reservationId);
+    }
+    // V14 : e-mail mis en forme avec le lien du s\xE9jour, envoy\xE9 depuis la fiche de la r\xE9servation
+    if (action === "sendStayLink") {
+      if (!isAdminRequest_(e, data)) return keyRequiredResponse_();
+      return sendStayLink_(data);
     }
     return { status: "error", message: "Action inconnue : " + action };
   } catch(err) {
@@ -9026,8 +9052,15 @@ function receiveMealOrder_(data) {
 
   var now = parisNow_();
   var res = ctx.stay ? ctx.stay.reservation : null;
-  var from = res ? String(res.checkIn) : now.date;
-  var to = res ? String(res.checkOut) : isoShift_(now.date, state.daysAhead);
+  // V14 : le petit-d\xE9jeuner se sert le matin (jamais le jour de l'arriv\xE9e, jusqu'au jour du d\xE9part) ;
+  // le d\xE9jeuner, de l'arriv\xE9e au d\xE9part ; les autres repas, les jours o\xF9 la soir\xE9e se passe sur place
+  // (de l'arriv\xE9e \xE0 la veille du d\xE9part)
+  var from = now.date;
+  var to = isoShift_(now.date, state.daysAhead);
+  if (res) {
+    from = moment.id === "breakfast" ? isoShift_(String(res.checkIn), 1) : String(res.checkIn);
+    to = moment.id === "breakfast" || moment.id === "lunch" ? String(res.checkOut) : isoShift_(String(res.checkOut), -1);
+  }
   var dates = [];
   listOf_(data.dates).forEach(function(d) {
     d = textOf_(d);
@@ -9189,7 +9222,46 @@ function attachMealOrder_(id, reservationId) {
   return done ? { status: "success", version: CONNECTOR_VERSION } : { status: "error", message: "Commande introuvable." };
 }
 
-// ===== FIN DU CONNECTEUR (V13) : si cette ligne n'est pas tout en bas dans Apps Script, le code coll\xE9 est incomplet. =====
+// =========================================================================
+// V14 : E-MAIL DU LIEN DE S\xC9JOUR (COMMANDE DES REPAS OU LIVRET), MIS EN FORME
+// =========================================================================
+
+// Envoie au voyageur un e-mail propre avec un bouton cliquable (au lieu d'une longue adresse brute)
+function sendStayLink_(data) {
+  var to = cleanText_(data.to, 200);
+  if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(to)) return { status: "error", message: "Adresse e-mail du voyageur absente ou invalide." };
+  var link = cleanText_(data.link, 1500);
+  if (!/^https:\\/\\/[^\\s"<>]+$/.test(link)) return { status: "error", message: "Lien invalide." };
+  var estName = cleanText_(data.establishment, 80) || "Domaine Sylvaria";
+  var name = cleanText_(data.name, 80);
+  var period = cleanText_(data.period, 120);
+  var meals = data.kind !== "book";
+  var subject = estName + (meals ? " : commande de vos repas" : " : votre livret d'accueil");
+  var intro = meals
+    ? "Pour votre s\xE9jour " + period + ", vous pouvez commander vos petits-d\xE9jeuners et vos repas, jour par jour, depuis le lien ci-dessous."
+    : "Voici le livret d'accueil de votre s\xE9jour " + period + " (arriv\xE9e, Wi-Fi, informations pratiques, commande des repas).";
+  var label = meals ? "Commander mes repas" : "Ouvrir le livret d'accueil";
+  var named = meals ? "Lien vers la commande de repas du " + estName : "Lien vers le livret d'accueil du " + estName;
+  var html = "<div style=\\"font-family:Arial,sans-serif;font-size:14px;color:#171717;max-width:560px\\">" +
+    "<p style=\\"margin:0 0 12px\\">Bonjour" + (name ? " " + esc_(name) : "") + ",</p>" +
+    "<p style=\\"margin:0 0 16px\\">" + esc_(intro) + "</p>" +
+    "<p style=\\"margin:0 0 16px\\"><a href=\\"" + esc_(link) + "\\" style=\\"background:#325032;color:#ffffff;padding:11px 18px;border-radius:10px;text-decoration:none;font-weight:bold;display:inline-block\\">" + esc_(label) + "</a></p>" +
+    "<p style=\\"margin:0 0 16px;font-size:13px\\"><a href=\\"" + esc_(link) + "\\" style=\\"color:#325032\\">" + esc_(named) + "</a></p>" +
+    "<p style=\\"margin:0\\">\xC0 bient\xF4t,<br>" + esc_(estName) + "</p></div>";
+  var mail = {
+    to: to,
+    subject: subject,
+    body: "Bonjour" + (name ? " " + name : "") + ",\\n\\n" + intro + "\\n\\n" + named + " :\\n" + link + "\\n\\n\xC0 bient\xF4t,\\n" + estName,
+    htmlBody: html,
+    name: estName
+  };
+  var replyTo = cleanText_(data.replyTo, 200);
+  if (/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(replyTo)) mail.replyTo = replyTo;
+  MailApp.sendEmail(mail);
+  return { status: "success", version: CONNECTOR_VERSION };
+}
+
+// ===== FIN DU CONNECTEUR (V14) : si cette ligne n'est pas tout en bas dans Apps Script, le code coll\xE9 est incomplet. =====
 `;
   }
 
@@ -15075,7 +15147,7 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
     const rules = moment2.order;
     const stay = ordering.stay;
     const now = parisNow();
-    const range = stay ? { from: stay.checkIn, to: stay.checkOut } : { from: now.date, to: shiftDate(now.date, ordering.daysAhead) };
+    const range = stay ? stayMealRange(moment2.id, stay) : { from: now.date, to: shiftDate(now.date, ordering.daysAhead) };
     const already = new Set((stay?.orders || []).filter((o) => o.momentId === moment2.id && activeOrder(o)).map((o) => o.date));
     const dates = orderDates(rules, range, now).filter((d) => !already.has(d));
     const orderable = moment2.groups.flatMap((g) => g.items).filter((i) => i.orderable);
@@ -15169,7 +15241,9 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
         dates.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("p", { className: "text-[12px] text-neutral-500", children: [
           "Plus aucun jour ne peut \xEAtre command\xE9",
           stay ? " pour votre s\xE9jour" : "",
-          " (heure limite pass\xE9e)."
+          " (heure limite pass\xE9e",
+          stay ? moment2.id === "breakfast" ? " ; le petit-d\xE9jeuner se sert le matin, \xE0 partir du lendemain de votre arriv\xE9e" : moment2.id === "lunch" ? " ; le d\xE9jeuner se sert du jour de votre arriv\xE9e au jour de votre d\xE9part" : " ; ce repas se sert du jour de votre arriv\xE9e \xE0 la veille de votre d\xE9part" : "",
+          ")."
         ] }) : /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "flex flex-wrap gap-1.5", children: dates.map((d) => {
           const on = picked.includes(d);
           return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
@@ -16178,6 +16252,12 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
     const info = await connectorInfo(void 0, true);
     if (info.version < 13) throw new Error(CONNECTOR_V13_MESSAGE);
   }
+  var CONNECTOR_V14_MESSAGE = "L'envoi de l'e-mail mis en forme demande la mise \xE0 jour du connecteur Google (V14) : Param\xE9trage > Google Sheets, copiez TOUT le nouveau code dans Apps Script et d\xE9ployez une nouvelle version.";
+  async function sendStayLinkEmail(mail) {
+    const info = await connectorInfo(void 0, true);
+    if (info.version < 14) throw new Error(CONNECTOR_V14_MESSAGE);
+    await connectorPost({ action: "sendStayLink", ...mail });
+  }
   var str = (v) => typeof v === "string" ? v : "";
   var num = (v) => typeof v === "number" && isFinite(v) ? v : 0;
   var STATUSES = ["new", "confirmed", "refused", "done", "cancelled"];
@@ -16978,7 +17058,15 @@ ${establishmentName}`;
         },
         d.day
       )) }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Field, { label: "Texte pour les voyageurs (facultatif)", children: /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(TextArea, { value: m.intro, onChange: (v) => onChange({ intro: v }), placeholder: "Ex. servi sur la terrasse aux beaux jours, en salle sinon." }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Field, { label: "Texte explicatif (facultatif)", hint: "Affich\xE9 aux voyageurs dans le livret, juste avant la liste des plats ou des aliments de ce repas.", children: /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
+        TextArea,
+        {
+          value: m.intro,
+          onChange: (v) => onChange({ intro: v }),
+          rows: 4,
+          placeholder: "Ex. Servi sur la terrasse aux beaux jours, en salle sinon. Tous nos produits sont faits maison ; dites-nous vos allergies \xE0 la commande."
+        }
+      ) }),
       /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
         CheckboxRow,
         {
@@ -31124,26 +31212,51 @@ Cette action supprimera la facture du registre et la retirera du Google Sheet.`)
     establishment,
     kind
   }) => {
+    const settings = useSettings();
     const [copied, setCopied] = (0, import_react54.useState)(false);
+    const [mailState, setMailState] = (0, import_react54.useState)("idle");
+    const [mailError, setMailError] = (0, import_react54.useState)("");
+    const period = `du ${dayLabel(reservation.checkIn)} au ${dayLabel(reservation.checkOut)}`;
+    const linkName = kind === "meals" ? `Lien vers la commande de repas du ${establishment}` : `Lien vers le livret d'accueil du ${establishment}`;
     const text = (link) => kind === "meals" ? `Bonjour ${reservation.guestName || ""},
 
-Pour votre s\xE9jour du ${dayLabel(reservation.checkIn)} au ${dayLabel(reservation.checkOut)}, vous pouvez commander vos petits-d\xE9jeuners et vos repas ici, jour par jour :
+Pour votre s\xE9jour ${period}, vous pouvez commander vos petits-d\xE9jeuners et vos repas, jour par jour :
+
+${linkName} :
 ${link}
 
 \xC0 bient\xF4t,
 ${establishment}` : `Bonjour ${reservation.guestName || ""},
 
-Voici le livret d'accueil de votre s\xE9jour du ${dayLabel(reservation.checkIn)} au ${dayLabel(reservation.checkOut)} (arriv\xE9e, Wi-Fi, informations pratiques, commande des repas) :
+Voici le livret d'accueil de votre s\xE9jour ${period} (arriv\xE9e, Wi-Fi, informations pratiques, commande des repas) :
+
+${linkName} :
 ${link}
 
 \xC0 bient\xF4t,
 ${establishment}`;
+    const smsText = (link) => `Bonjour ${reservation.guestName || ""}, ${kind === "meals" ? `commandez vos repas pour votre s\xE9jour ${period}` : `voici le livret d'accueil de votre s\xE9jour ${period}`} : ${link} - ${establishment}`;
     const subject = kind === "meals" ? `${establishment} : commande de vos repas` : `${establishment} : votre livret d'accueil`;
     const phone = (reservation.guestPhone || "").replace(/[^0-9+]/g, "");
+    const whatsappPhone = phone.startsWith("+") ? phone.slice(1) : phone.startsWith("00") ? phone.slice(2) : phone.startsWith("0") ? `33${phone.slice(1)}` : phone;
+    const email = (reservation.guestEmail || "").trim();
     const go = (fn) => {
       const link = makeLink();
       if (link) fn(link);
     };
+    const sendMail = () => go(async (link) => {
+      if (!window.confirm(`Envoyer cet e-mail \xE0 ${email} ?`)) return;
+      setMailState("sending");
+      setMailError("");
+      try {
+        await sendStayLinkEmail({ to: email, name: reservation.guestName || "", period, link, kind, establishment, replyTo: settings.establishment.email || "" });
+        setMailState("sent");
+        setTimeout(() => setMailState("idle"), 4e3);
+      } catch (err) {
+        setMailError(err?.message || "Envoi impossible pour le moment.");
+        setMailState("idle");
+      }
+    });
     const btn = "flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-sy-325032 border border-neutral-200 rounded-lg cursor-pointer hover:bg-neutral-50";
     return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { className: "p-2.5 rounded-xl border border-neutral-200 bg-white", "data-stay-link": kind, children: [
       /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { className: "flex items-center gap-1.5 text-xs font-bold text-neutral-900", children: [
@@ -31177,19 +31290,62 @@ ${establishment}`;
           "button",
           {
             type: "button",
-            className: btn,
-            onClick: () => go((link) => window.open(`mailto:${encodeURIComponent(reservation.guestEmail || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text(link))}`, "_self")),
+            className: `${btn} disabled:opacity-40 disabled:cursor-not-allowed`,
+            disabled: !email || mailState === "sending",
+            title: email ? `Envoie un e-mail mis en forme (bouton cliquable) \xE0 ${email}` : "Aucune adresse e-mail renseign\xE9e dans la r\xE9servation",
+            onClick: sendMail,
+            "data-stay-send-mail": kind,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(Mail, { className: "w-3.5 h-3.5" }),
-              " E-mail"
+              mailState === "sending" ? /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin" }) : mailState === "sent" ? /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(Check, { className: "w-3.5 h-3.5" }) : /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(Send, { className: "w-3.5 h-3.5" }),
+              " ",
+              mailState === "sent" ? "E-mail envoy\xE9" : "Envoyer l'e-mail"
             ]
           }
         ),
-        phone && /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("button", { type: "button", className: btn, onClick: () => go((link) => window.open(`sms:${phone}?&body=${encodeURIComponent(text(link))}`, "_self")), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(MessageSquare, { className: "w-3.5 h-3.5" }),
-          " SMS"
-        ] })
-      ] })
+        /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(
+          "button",
+          {
+            type: "button",
+            className: btn,
+            title: "Ouvre votre messagerie avec le message pr\xEAt \xE0 envoyer",
+            onClick: () => go((link) => window.open(`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text(link))}`, "_self")),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(Mail, { className: "w-3.5 h-3.5" }),
+              " Ma messagerie"
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(
+          "button",
+          {
+            type: "button",
+            className: `${btn} disabled:opacity-40 disabled:cursor-not-allowed`,
+            disabled: !phone,
+            title: phone ? `SMS au ${reservation.guestPhone}` : "Aucun t\xE9l\xE9phone renseign\xE9 dans la r\xE9servation",
+            onClick: () => go((link) => window.open(`sms:${phone}?&body=${encodeURIComponent(smsText(link))}`, "_self")),
+            "data-stay-sms": kind,
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(MessageSquare, { className: "w-3.5 h-3.5" }),
+              " SMS"
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(
+          "button",
+          {
+            type: "button",
+            className: `${btn} disabled:opacity-40 disabled:cursor-not-allowed`,
+            disabled: !phone,
+            title: phone ? `WhatsApp au ${reservation.guestPhone}` : "Aucun t\xE9l\xE9phone renseign\xE9 dans la r\xE9servation",
+            onClick: () => go((link) => window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(smsText(link))}`, "_blank", "noopener")),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(MessageCircle, { className: "w-3.5 h-3.5" }),
+              " WhatsApp"
+            ]
+          }
+        )
+      ] }),
+      mailError && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("p", { className: "text-[10px] text-red-700 mt-1", children: mailError })
     ] });
   };
   var StayMealsBlock = ({ reservation }) => {
@@ -35644,6 +35800,7 @@ lucide-react/dist/esm/icons/log-out.js:
 lucide-react/dist/esm/icons/mail.js:
 lucide-react/dist/esm/icons/map-pin.js:
 lucide-react/dist/esm/icons/menu.js:
+lucide-react/dist/esm/icons/message-circle.js:
 lucide-react/dist/esm/icons/message-square-plus.js:
 lucide-react/dist/esm/icons/message-square.js:
 lucide-react/dist/esm/icons/minus.js:
