@@ -9583,12 +9583,16 @@ function setBookMessageStatus_(ids, status) {
     label,
     hint,
     className = "",
+    group,
     children
-  }) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("label", { className: `block ${className}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "block text-[11px] font-semibold text-neutral-700 mb-1", children: label }),
-    children,
-    hint && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "block text-[10px] text-neutral-400 mt-0.5", children: hint })
-  ] });
+  }) => {
+    const Tag = group ? "div" : "label";
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Tag, { className: `block ${className}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "block text-[11px] font-semibold text-neutral-700 mb-1", children: label }),
+      children,
+      hint && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "block text-[10px] text-neutral-400 mt-0.5", children: hint })
+    ] });
+  };
   var TextInput = ({
     value,
     onChange,
@@ -15694,7 +15698,7 @@ ${m.message}
         /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(ItemsEditor, { section: s, onChange: (items) => onChange({ items }) })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Field, { label: textLabel.label, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(TextArea, { value: s.text, onChange: (v) => onChange({ text: v }), rows: s.kind === "welcome" || s.kind === "arrival" ? 4 : 2, placeholder: textLabel.placeholder }) }),
-      s.kind !== "wifi" && s.kind !== "contact" && s.kind !== "faq" && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Field, { label: "Photos", children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(PhotoPicker, { ids: s.photos, onChange: (photos2) => onChange({ photos: photos2 }), onAdded: onPhotoAdded, onToast }) }),
+      s.kind !== "wifi" && s.kind !== "contact" && s.kind !== "faq" && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Field, { label: "Photos", group: true, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(PhotoPicker, { ids: s.photos, onChange: (photos2) => onChange({ photos: photos2 }), onAdded: onPhotoAdded, onToast }) }),
       onDelete && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "flex justify-end", children: /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("button", { type: "button", onClick: onDelete, className: "text-[11px] font-semibold text-red-700 hover:underline cursor-pointer flex items-center gap-1", children: [
         /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Trash2, { className: "w-3 h-3" }),
         " Supprimer cette rubrique"
@@ -15867,7 +15871,7 @@ ${m.message}
                 }
               ) })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Field, { label: "Photo de couverture", children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Field, { label: "Photo de couverture", group: true, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
               PhotoPicker,
               {
                 ids: draft.coverPhoto ? [draft.coverPhoto] : [],
