@@ -240,6 +240,10 @@ var DomaineAppBundle = (() => {
       surveyAudience: "guests",
       surveyIntro: "Votre avis nous aide \xE0 nous am\xE9liorer. Merci d'avoir pris quelques secondes pour r\xE9pondre !",
       surveyQuestions: DEFAULT_SURVEY_QUESTIONS.map((q) => ({ ...q })),
+      guestbook: true,
+      guestbookAudience: "guests",
+      guestbookShow: true,
+      guestbookIntro: "Un souvenir, un mot doux, un conseil pour les prochains voyageurs ? Laissez une trace de votre passage !",
       notify: true,
       notifyEmail: ""
     };
@@ -328,6 +332,11 @@ var DomaineAppBundle = (() => {
       surveyAudience: privacy(r.surveyAudience, d.surveyAudience),
       surveyIntro: typeof r.surveyIntro === "string" ? r.surveyIntro : d.surveyIntro,
       surveyQuestions: questions,
+      // Même règle que le connecteur : livre d'or actif sauf s'il a été coupé, écriture réservée aux voyageurs sauf choix « public »
+      guestbook: r.guestbook !== false,
+      guestbookAudience: r.guestbookAudience === "public" ? "public" : "guests",
+      guestbookShow: r.guestbookShow !== false,
+      guestbookIntro: typeof r.guestbookIntro === "string" ? r.guestbookIntro : d.guestbookIntro,
       notify: r.notify !== false,
       notifyEmail: asText(r.notifyEmail)
     };
@@ -4152,8 +4161,27 @@ var DomaineAppBundle = (() => {
   ];
   var Blocks = createLucideIcon("blocks", __iconNode9);
 
-  // node_modules/lucide-react/dist/esm/icons/book-open.js
+  // node_modules/lucide-react/dist/esm/icons/book-heart.js
   var __iconNode10 = [
+    [
+      "path",
+      {
+        d: "M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20",
+        key: "k3hazp"
+      }
+    ],
+    [
+      "path",
+      {
+        d: "M8.62 9.8A2.25 2.25 0 1 1 12 6.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z",
+        key: "9v40y5"
+      }
+    ]
+  ];
+  var BookHeart = createLucideIcon("book-heart", __iconNode10);
+
+  // node_modules/lucide-react/dist/esm/icons/book-open.js
+  var __iconNode11 = [
     ["path", { d: "M12 7v14", key: "1akyts" }],
     [
       "path",
@@ -4163,10 +4191,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var BookOpen = createLucideIcon("book-open", __iconNode10);
+  var BookOpen = createLucideIcon("book-open", __iconNode11);
 
   // node_modules/lucide-react/dist/esm/icons/book-x.js
-  var __iconNode11 = [
+  var __iconNode12 = [
     ["path", { d: "m14.5 7-5 5", key: "dy991v" }],
     [
       "path",
@@ -4177,10 +4205,10 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "m9.5 7 5 5", key: "s45iea" }]
   ];
-  var BookX = createLucideIcon("book-x", __iconNode11);
+  var BookX = createLucideIcon("book-x", __iconNode12);
 
   // node_modules/lucide-react/dist/esm/icons/building-2.js
-  var __iconNode12 = [
+  var __iconNode13 = [
     ["path", { d: "M10 12h4", key: "a56b0p" }],
     ["path", { d: "M10 8h4", key: "1sr2af" }],
     ["path", { d: "M14 21v-3a2 2 0 0 0-4 0v3", key: "1rgiei" }],
@@ -4193,10 +4221,10 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16", key: "16ra0t" }]
   ];
-  var Building2 = createLucideIcon("building-2", __iconNode12);
+  var Building2 = createLucideIcon("building-2", __iconNode13);
 
   // node_modules/lucide-react/dist/esm/icons/building.js
-  var __iconNode13 = [
+  var __iconNode14 = [
     ["path", { d: "M12 10h.01", key: "1nrarc" }],
     ["path", { d: "M12 14h.01", key: "1etili" }],
     ["path", { d: "M12 6h.01", key: "1vi96p" }],
@@ -4209,10 +4237,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3", key: "cabbwy" }],
     ["rect", { x: "4", y: "2", width: "16", height: "20", rx: "2", key: "1uxh74" }]
   ];
-  var Building = createLucideIcon("building", __iconNode13);
+  var Building = createLucideIcon("building", __iconNode14);
 
   // node_modules/lucide-react/dist/esm/icons/calculator.js
-  var __iconNode14 = [
+  var __iconNode15 = [
     ["rect", { width: "16", height: "20", x: "4", y: "2", rx: "2", key: "1nb95v" }],
     ["line", { x1: "8", x2: "16", y1: "6", y2: "6", key: "x4nwl0" }],
     ["line", { x1: "16", x2: "16", y1: "14", y2: "18", key: "wjye3r" }],
@@ -4224,20 +4252,20 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 18h.01", key: "mhygvu" }],
     ["path", { d: "M8 18h.01", key: "lrp35t" }]
   ];
-  var Calculator = createLucideIcon("calculator", __iconNode14);
+  var Calculator = createLucideIcon("calculator", __iconNode15);
 
   // node_modules/lucide-react/dist/esm/icons/calendar-check.js
-  var __iconNode15 = [
+  var __iconNode16 = [
     ["path", { d: "M8 2v4", key: "1cmpym" }],
     ["path", { d: "M16 2v4", key: "4m81vk" }],
     ["rect", { width: "18", height: "18", x: "3", y: "4", rx: "2", key: "1hopcy" }],
     ["path", { d: "M3 10h18", key: "8toen8" }],
     ["path", { d: "m9 16 2 2 4-4", key: "19s6y9" }]
   ];
-  var CalendarCheck = createLucideIcon("calendar-check", __iconNode15);
+  var CalendarCheck = createLucideIcon("calendar-check", __iconNode16);
 
   // node_modules/lucide-react/dist/esm/icons/calendar-days.js
-  var __iconNode16 = [
+  var __iconNode17 = [
     ["path", { d: "M8 2v4", key: "1cmpym" }],
     ["path", { d: "M16 2v4", key: "4m81vk" }],
     ["rect", { width: "18", height: "18", x: "3", y: "4", rx: "2", key: "1hopcy" }],
@@ -4249,10 +4277,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 18h.01", key: "mhygvu" }],
     ["path", { d: "M16 18h.01", key: "kzsmim" }]
   ];
-  var CalendarDays = createLucideIcon("calendar-days", __iconNode16);
+  var CalendarDays = createLucideIcon("calendar-days", __iconNode17);
 
   // node_modules/lucide-react/dist/esm/icons/calendar-sync.js
-  var __iconNode17 = [
+  var __iconNode18 = [
     ["path", { d: "M11 10v4h4", key: "172dkj" }],
     ["path", { d: "m11 14 1.535-1.605a5 5 0 0 1 8 1.5", key: "vu0qm5" }],
     ["path", { d: "M16 2v4", key: "4m81vk" }],
@@ -4262,19 +4290,19 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M3 10h4", key: "1el30a" }],
     ["path", { d: "M8 2v4", key: "1cmpym" }]
   ];
-  var CalendarSync = createLucideIcon("calendar-sync", __iconNode17);
+  var CalendarSync = createLucideIcon("calendar-sync", __iconNode18);
 
   // node_modules/lucide-react/dist/esm/icons/calendar.js
-  var __iconNode18 = [
+  var __iconNode19 = [
     ["path", { d: "M8 2v4", key: "1cmpym" }],
     ["path", { d: "M16 2v4", key: "4m81vk" }],
     ["rect", { width: "18", height: "18", x: "3", y: "4", rx: "2", key: "1hopcy" }],
     ["path", { d: "M3 10h18", key: "8toen8" }]
   ];
-  var Calendar = createLucideIcon("calendar", __iconNode18);
+  var Calendar = createLucideIcon("calendar", __iconNode19);
 
   // node_modules/lucide-react/dist/esm/icons/camera.js
-  var __iconNode19 = [
+  var __iconNode20 = [
     [
       "path",
       {
@@ -4284,73 +4312,73 @@ var DomaineAppBundle = (() => {
     ],
     ["circle", { cx: "12", cy: "13", r: "3", key: "1vg3eu" }]
   ];
-  var Camera = createLucideIcon("camera", __iconNode19);
+  var Camera = createLucideIcon("camera", __iconNode20);
 
   // node_modules/lucide-react/dist/esm/icons/chart-column.js
-  var __iconNode20 = [
+  var __iconNode21 = [
     ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
     ["path", { d: "M18 17V9", key: "2bz60n" }],
     ["path", { d: "M13 17V5", key: "1frdt8" }],
     ["path", { d: "M8 17v-3", key: "17ska0" }]
   ];
-  var ChartColumn = createLucideIcon("chart-column", __iconNode20);
+  var ChartColumn = createLucideIcon("chart-column", __iconNode21);
 
   // node_modules/lucide-react/dist/esm/icons/check.js
-  var __iconNode21 = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-  var Check = createLucideIcon("check", __iconNode21);
+  var __iconNode22 = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+  var Check = createLucideIcon("check", __iconNode22);
 
   // node_modules/lucide-react/dist/esm/icons/chevron-down.js
-  var __iconNode22 = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-  var ChevronDown = createLucideIcon("chevron-down", __iconNode22);
+  var __iconNode23 = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+  var ChevronDown = createLucideIcon("chevron-down", __iconNode23);
 
   // node_modules/lucide-react/dist/esm/icons/chevron-left.js
-  var __iconNode23 = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
-  var ChevronLeft = createLucideIcon("chevron-left", __iconNode23);
+  var __iconNode24 = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+  var ChevronLeft = createLucideIcon("chevron-left", __iconNode24);
 
   // node_modules/lucide-react/dist/esm/icons/chevron-right.js
-  var __iconNode24 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-  var ChevronRight = createLucideIcon("chevron-right", __iconNode24);
+  var __iconNode25 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+  var ChevronRight = createLucideIcon("chevron-right", __iconNode25);
 
   // node_modules/lucide-react/dist/esm/icons/circle-alert.js
-  var __iconNode25 = [
+  var __iconNode26 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
     ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
   ];
-  var CircleAlert = createLucideIcon("circle-alert", __iconNode25);
+  var CircleAlert = createLucideIcon("circle-alert", __iconNode26);
 
   // node_modules/lucide-react/dist/esm/icons/circle-check.js
-  var __iconNode26 = [
+  var __iconNode27 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ];
-  var CircleCheck = createLucideIcon("circle-check", __iconNode26);
+  var CircleCheck = createLucideIcon("circle-check", __iconNode27);
 
   // node_modules/lucide-react/dist/esm/icons/circle-plus.js
-  var __iconNode27 = [
+  var __iconNode28 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "M8 12h8", key: "1wcyev" }],
     ["path", { d: "M12 8v8", key: "napkw2" }]
   ];
-  var CirclePlus = createLucideIcon("circle-plus", __iconNode27);
+  var CirclePlus = createLucideIcon("circle-plus", __iconNode28);
 
   // node_modules/lucide-react/dist/esm/icons/circle-question-mark.js
-  var __iconNode28 = [
+  var __iconNode29 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3", key: "1u773s" }],
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ];
-  var CircleQuestionMark = createLucideIcon("circle-question-mark", __iconNode28);
+  var CircleQuestionMark = createLucideIcon("circle-question-mark", __iconNode29);
 
   // node_modules/lucide-react/dist/esm/icons/clock.js
-  var __iconNode29 = [
+  var __iconNode30 = [
     ["path", { d: "M12 6v6l4 2", key: "mmk7yg" }],
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
   ];
-  var Clock = createLucideIcon("clock", __iconNode29);
+  var Clock = createLucideIcon("clock", __iconNode30);
 
   // node_modules/lucide-react/dist/esm/icons/cloud-off.js
-  var __iconNode30 = [
+  var __iconNode31 = [
     ["path", { d: "m2 2 20 20", key: "1ooewy" }],
     ["path", { d: "M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193", key: "yfwify" }],
     [
@@ -4358,19 +4386,19 @@ var DomaineAppBundle = (() => {
       { d: "M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07", key: "jlfiyv" }
     ]
   ];
-  var CloudOff = createLucideIcon("cloud-off", __iconNode30);
+  var CloudOff = createLucideIcon("cloud-off", __iconNode31);
 
   // node_modules/lucide-react/dist/esm/icons/coins.js
-  var __iconNode31 = [
+  var __iconNode32 = [
     ["circle", { cx: "8", cy: "8", r: "6", key: "3yglwk" }],
     ["path", { d: "M18.09 10.37A6 6 0 1 1 10.34 18", key: "t5s6rm" }],
     ["path", { d: "M7 6h1v4", key: "1obek4" }],
     ["path", { d: "m16.71 13.88.7.71-2.82 2.82", key: "1rbuyh" }]
   ];
-  var Coins = createLucideIcon("coins", __iconNode31);
+  var Coins = createLucideIcon("coins", __iconNode32);
 
   // node_modules/lucide-react/dist/esm/icons/coffee.js
-  var __iconNode32 = [
+  var __iconNode33 = [
     ["path", { d: "M10 2v2", key: "7u0qdc" }],
     ["path", { d: "M14 2v2", key: "6buw04" }],
     [
@@ -4382,24 +4410,24 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "M6 2v2", key: "colzsn" }]
   ];
-  var Coffee = createLucideIcon("coffee", __iconNode32);
+  var Coffee = createLucideIcon("coffee", __iconNode33);
 
   // node_modules/lucide-react/dist/esm/icons/copy.js
-  var __iconNode33 = [
+  var __iconNode34 = [
     ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
     ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
   ];
-  var Copy = createLucideIcon("copy", __iconNode33);
+  var Copy = createLucideIcon("copy", __iconNode34);
 
   // node_modules/lucide-react/dist/esm/icons/credit-card.js
-  var __iconNode34 = [
+  var __iconNode35 = [
     ["rect", { width: "20", height: "14", x: "2", y: "5", rx: "2", key: "ynyp8z" }],
     ["line", { x1: "2", x2: "22", y1: "10", y2: "10", key: "1b3vmo" }]
   ];
-  var CreditCard = createLucideIcon("credit-card", __iconNode34);
+  var CreditCard = createLucideIcon("credit-card", __iconNode35);
 
   // node_modules/lucide-react/dist/esm/icons/dog.js
-  var __iconNode35 = [
+  var __iconNode36 = [
     ["path", { d: "M11.25 16.25h1.5L12 17z", key: "w7jh35" }],
     ["path", { d: "M16 14v.5", key: "1lajdz" }],
     [
@@ -4418,25 +4446,25 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Dog = createLucideIcon("dog", __iconNode35);
+  var Dog = createLucideIcon("dog", __iconNode36);
 
   // node_modules/lucide-react/dist/esm/icons/dollar-sign.js
-  var __iconNode36 = [
+  var __iconNode37 = [
     ["line", { x1: "12", x2: "12", y1: "2", y2: "22", key: "7eqyqh" }],
     ["path", { d: "M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6", key: "1b0p4s" }]
   ];
-  var DollarSign = createLucideIcon("dollar-sign", __iconNode36);
+  var DollarSign = createLucideIcon("dollar-sign", __iconNode37);
 
   // node_modules/lucide-react/dist/esm/icons/download.js
-  var __iconNode37 = [
+  var __iconNode38 = [
     ["path", { d: "M12 15V3", key: "m9g1x1" }],
     ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
     ["path", { d: "m7 10 5 5 5-5", key: "brsn70" }]
   ];
-  var Download = createLucideIcon("download", __iconNode37);
+  var Download = createLucideIcon("download", __iconNode38);
 
   // node_modules/lucide-react/dist/esm/icons/euro.js
-  var __iconNode38 = [
+  var __iconNode39 = [
     ["path", { d: "M4 10h12", key: "1y6xl8" }],
     ["path", { d: "M4 14h9", key: "1loblj" }],
     [
@@ -4447,18 +4475,39 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Euro = createLucideIcon("euro", __iconNode38);
+  var Euro = createLucideIcon("euro", __iconNode39);
 
   // node_modules/lucide-react/dist/esm/icons/external-link.js
-  var __iconNode39 = [
+  var __iconNode40 = [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "M10 14 21 3", key: "gplh6r" }],
     ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", key: "a6xqqp" }]
   ];
-  var ExternalLink = createLucideIcon("external-link", __iconNode39);
+  var ExternalLink = createLucideIcon("external-link", __iconNode40);
+
+  // node_modules/lucide-react/dist/esm/icons/eye-off.js
+  var __iconNode41 = [
+    [
+      "path",
+      {
+        d: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+        key: "ct8e1f"
+      }
+    ],
+    ["path", { d: "M14.084 14.158a3 3 0 0 1-4.242-4.242", key: "151rxh" }],
+    [
+      "path",
+      {
+        d: "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+        key: "13bj9a"
+      }
+    ],
+    ["path", { d: "m2 2 20 20", key: "1ooewy" }]
+  ];
+  var EyeOff = createLucideIcon("eye-off", __iconNode41);
 
   // node_modules/lucide-react/dist/esm/icons/eye.js
-  var __iconNode40 = [
+  var __iconNode42 = [
     [
       "path",
       {
@@ -4468,19 +4517,19 @@ var DomaineAppBundle = (() => {
     ],
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ];
-  var Eye = createLucideIcon("eye", __iconNode40);
+  var Eye = createLucideIcon("eye", __iconNode42);
 
   // node_modules/lucide-react/dist/esm/icons/file-code.js
-  var __iconNode41 = [
+  var __iconNode43 = [
     ["path", { d: "M10 12.5 8 15l2 2.5", key: "1tg20x" }],
     ["path", { d: "m14 12.5 2 2.5-2 2.5", key: "yinavb" }],
     ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4", key: "tnqrlb" }],
     ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z", key: "1mlx9k" }]
   ];
-  var FileCode = createLucideIcon("file-code", __iconNode41);
+  var FileCode = createLucideIcon("file-code", __iconNode43);
 
   // node_modules/lucide-react/dist/esm/icons/file-spreadsheet.js
-  var __iconNode42 = [
+  var __iconNode44 = [
     ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", key: "1rqfz7" }],
     ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4", key: "tnqrlb" }],
     ["path", { d: "M8 13h2", key: "yr2amv" }],
@@ -4488,28 +4537,28 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M8 17h2", key: "2yhykz" }],
     ["path", { d: "M14 17h2", key: "10kma7" }]
   ];
-  var FileSpreadsheet = createLucideIcon("file-spreadsheet", __iconNode42);
+  var FileSpreadsheet = createLucideIcon("file-spreadsheet", __iconNode44);
 
   // node_modules/lucide-react/dist/esm/icons/file-text.js
-  var __iconNode43 = [
+  var __iconNode45 = [
     ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", key: "1rqfz7" }],
     ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4", key: "tnqrlb" }],
     ["path", { d: "M10 9H8", key: "b1mrlr" }],
     ["path", { d: "M16 13H8", key: "t4e002" }],
     ["path", { d: "M16 17H8", key: "z1uh3a" }]
   ];
-  var FileText = createLucideIcon("file-text", __iconNode43);
+  var FileText = createLucideIcon("file-text", __iconNode45);
 
   // node_modules/lucide-react/dist/esm/icons/globe.js
-  var __iconNode44 = [
+  var __iconNode46 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", key: "13o1zl" }],
     ["path", { d: "M2 12h20", key: "9i4pu4" }]
   ];
-  var Globe = createLucideIcon("globe", __iconNode44);
+  var Globe = createLucideIcon("globe", __iconNode46);
 
   // node_modules/lucide-react/dist/esm/icons/hand-platter.js
-  var __iconNode45 = [
+  var __iconNode47 = [
     ["path", { d: "M12 3V2", key: "ar7q03" }],
     [
       "path",
@@ -4523,36 +4572,36 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M5 10a7 7 0 0 1 14 0", key: "1ega1o" }],
     ["path", { d: "M5 14v6a1 1 0 0 1-1 1H2", key: "1hescx" }]
   ];
-  var HandPlatter = createLucideIcon("hand-platter", __iconNode45);
+  var HandPlatter = createLucideIcon("hand-platter", __iconNode47);
 
   // node_modules/lucide-react/dist/esm/icons/history.js
-  var __iconNode46 = [
+  var __iconNode48 = [
     ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
     ["path", { d: "M3 3v5h5", key: "1xhq8a" }],
     ["path", { d: "M12 7v5l4 2", key: "1fdv2h" }]
   ];
-  var History = createLucideIcon("history", __iconNode46);
+  var History = createLucideIcon("history", __iconNode48);
 
   // node_modules/lucide-react/dist/esm/icons/image-plus.js
-  var __iconNode47 = [
+  var __iconNode49 = [
     ["path", { d: "M16 5h6", key: "1vod17" }],
     ["path", { d: "M19 2v6", key: "4bpg5p" }],
     ["path", { d: "M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5", key: "1ue2ih" }],
     ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }],
     ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
   ];
-  var ImagePlus = createLucideIcon("image-plus", __iconNode47);
+  var ImagePlus = createLucideIcon("image-plus", __iconNode49);
 
   // node_modules/lucide-react/dist/esm/icons/image.js
-  var __iconNode48 = [
+  var __iconNode50 = [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", ry: "2", key: "1m3agn" }],
     ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }],
     ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }]
   ];
-  var Image2 = createLucideIcon("image", __iconNode48);
+  var Image2 = createLucideIcon("image", __iconNode50);
 
   // node_modules/lucide-react/dist/esm/icons/inbox.js
-  var __iconNode49 = [
+  var __iconNode51 = [
     ["polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12", key: "o97t9d" }],
     [
       "path",
@@ -4562,18 +4611,18 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Inbox = createLucideIcon("inbox", __iconNode49);
+  var Inbox = createLucideIcon("inbox", __iconNode51);
 
   // node_modules/lucide-react/dist/esm/icons/info.js
-  var __iconNode50 = [
+  var __iconNode52 = [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "M12 16v-4", key: "1dtifu" }],
     ["path", { d: "M12 8h.01", key: "e9boi3" }]
   ];
-  var Info = createLucideIcon("info", __iconNode50);
+  var Info = createLucideIcon("info", __iconNode52);
 
   // node_modules/lucide-react/dist/esm/icons/key-round.js
-  var __iconNode51 = [
+  var __iconNode53 = [
     [
       "path",
       {
@@ -4583,10 +4632,10 @@ var DomaineAppBundle = (() => {
     ],
     ["circle", { cx: "16.5", cy: "7.5", r: ".5", fill: "currentColor", key: "w0ekpg" }]
   ];
-  var KeyRound = createLucideIcon("key-round", __iconNode51);
+  var KeyRound = createLucideIcon("key-round", __iconNode53);
 
   // node_modules/lucide-react/dist/esm/icons/layers.js
-  var __iconNode52 = [
+  var __iconNode54 = [
     [
       "path",
       {
@@ -4609,77 +4658,77 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Layers = createLucideIcon("layers", __iconNode52);
+  var Layers = createLucideIcon("layers", __iconNode54);
 
   // node_modules/lucide-react/dist/esm/icons/layout-dashboard.js
-  var __iconNode53 = [
+  var __iconNode55 = [
     ["rect", { width: "7", height: "9", x: "3", y: "3", rx: "1", key: "10lvy0" }],
     ["rect", { width: "7", height: "5", x: "14", y: "3", rx: "1", key: "16une8" }],
     ["rect", { width: "7", height: "9", x: "14", y: "12", rx: "1", key: "1hutg5" }],
     ["rect", { width: "7", height: "5", x: "3", y: "16", rx: "1", key: "ldoo1y" }]
   ];
-  var LayoutDashboard = createLucideIcon("layout-dashboard", __iconNode53);
+  var LayoutDashboard = createLucideIcon("layout-dashboard", __iconNode55);
 
   // node_modules/lucide-react/dist/esm/icons/link-2.js
-  var __iconNode54 = [
+  var __iconNode56 = [
     ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
     ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
     ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
   ];
-  var Link2 = createLucideIcon("link-2", __iconNode54);
+  var Link2 = createLucideIcon("link-2", __iconNode56);
 
   // node_modules/lucide-react/dist/esm/icons/list-filter.js
-  var __iconNode55 = [
+  var __iconNode57 = [
     ["path", { d: "M2 5h20", key: "1fs1ex" }],
     ["path", { d: "M6 12h12", key: "8npq4p" }],
     ["path", { d: "M9 19h6", key: "456am0" }]
   ];
-  var ListFilter = createLucideIcon("list-filter", __iconNode55);
+  var ListFilter = createLucideIcon("list-filter", __iconNode57);
 
   // node_modules/lucide-react/dist/esm/icons/loader-circle.js
-  var __iconNode56 = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-  var LoaderCircle = createLucideIcon("loader-circle", __iconNode56);
+  var __iconNode58 = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+  var LoaderCircle = createLucideIcon("loader-circle", __iconNode58);
 
   // node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
-  var __iconNode57 = [
+  var __iconNode59 = [
     ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
     ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
     ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
   ];
-  var LockKeyhole = createLucideIcon("lock-keyhole", __iconNode57);
+  var LockKeyhole = createLucideIcon("lock-keyhole", __iconNode59);
 
   // node_modules/lucide-react/dist/esm/icons/lock.js
-  var __iconNode58 = [
+  var __iconNode60 = [
     ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
     ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
   ];
-  var Lock = createLucideIcon("lock", __iconNode58);
+  var Lock = createLucideIcon("lock", __iconNode60);
 
   // node_modules/lucide-react/dist/esm/icons/log-in.js
-  var __iconNode59 = [
+  var __iconNode61 = [
     ["path", { d: "m10 17 5-5-5-5", key: "1bsop3" }],
     ["path", { d: "M15 12H3", key: "6jk70r" }],
     ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", key: "u53s6r" }]
   ];
-  var LogIn = createLucideIcon("log-in", __iconNode59);
+  var LogIn = createLucideIcon("log-in", __iconNode61);
 
   // node_modules/lucide-react/dist/esm/icons/log-out.js
-  var __iconNode60 = [
+  var __iconNode62 = [
     ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
     ["path", { d: "M21 12H9", key: "dn1m92" }],
     ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
   ];
-  var LogOut = createLucideIcon("log-out", __iconNode60);
+  var LogOut = createLucideIcon("log-out", __iconNode62);
 
   // node_modules/lucide-react/dist/esm/icons/mail.js
-  var __iconNode61 = [
+  var __iconNode63 = [
     ["path", { d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7", key: "132q7q" }],
     ["rect", { x: "2", y: "4", width: "20", height: "16", rx: "2", key: "izxlao" }]
   ];
-  var Mail = createLucideIcon("mail", __iconNode61);
+  var Mail = createLucideIcon("mail", __iconNode63);
 
   // node_modules/lucide-react/dist/esm/icons/map-pin.js
-  var __iconNode62 = [
+  var __iconNode64 = [
     [
       "path",
       {
@@ -4689,18 +4738,18 @@ var DomaineAppBundle = (() => {
     ],
     ["circle", { cx: "12", cy: "10", r: "3", key: "ilqhr7" }]
   ];
-  var MapPin = createLucideIcon("map-pin", __iconNode62);
+  var MapPin = createLucideIcon("map-pin", __iconNode64);
 
   // node_modules/lucide-react/dist/esm/icons/menu.js
-  var __iconNode63 = [
+  var __iconNode65 = [
     ["path", { d: "M4 5h16", key: "1tepv9" }],
     ["path", { d: "M4 12h16", key: "1lakjw" }],
     ["path", { d: "M4 19h16", key: "1djgab" }]
   ];
-  var Menu = createLucideIcon("menu", __iconNode63);
+  var Menu = createLucideIcon("menu", __iconNode65);
 
   // node_modules/lucide-react/dist/esm/icons/message-square-plus.js
-  var __iconNode64 = [
+  var __iconNode66 = [
     [
       "path",
       {
@@ -4711,10 +4760,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 8v6", key: "1ib9pf" }],
     ["path", { d: "M9 11h6", key: "1fldmi" }]
   ];
-  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode64);
+  var MessageSquarePlus = createLucideIcon("message-square-plus", __iconNode66);
 
   // node_modules/lucide-react/dist/esm/icons/message-square.js
-  var __iconNode65 = [
+  var __iconNode67 = [
     [
       "path",
       {
@@ -4723,14 +4772,14 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var MessageSquare = createLucideIcon("message-square", __iconNode65);
+  var MessageSquare = createLucideIcon("message-square", __iconNode67);
 
   // node_modules/lucide-react/dist/esm/icons/minus.js
-  var __iconNode66 = [["path", { d: "M5 12h14", key: "1ays0h" }]];
-  var Minus = createLucideIcon("minus", __iconNode66);
+  var __iconNode68 = [["path", { d: "M5 12h14", key: "1ays0h" }]];
+  var Minus = createLucideIcon("minus", __iconNode68);
 
   // node_modules/lucide-react/dist/esm/icons/pen-line.js
-  var __iconNode67 = [
+  var __iconNode69 = [
     ["path", { d: "M13 21h8", key: "1jsn5i" }],
     [
       "path",
@@ -4740,10 +4789,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var PenLine = createLucideIcon("pen-line", __iconNode67);
+  var PenLine = createLucideIcon("pen-line", __iconNode69);
 
   // node_modules/lucide-react/dist/esm/icons/pen.js
-  var __iconNode68 = [
+  var __iconNode70 = [
     [
       "path",
       {
@@ -4752,10 +4801,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Pen = createLucideIcon("pen", __iconNode68);
+  var Pen = createLucideIcon("pen", __iconNode70);
 
   // node_modules/lucide-react/dist/esm/icons/pencil.js
-  var __iconNode69 = [
+  var __iconNode71 = [
     [
       "path",
       {
@@ -4765,18 +4814,18 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "m15 5 4 4", key: "1mk7zo" }]
   ];
-  var Pencil = createLucideIcon("pencil", __iconNode69);
+  var Pencil = createLucideIcon("pencil", __iconNode71);
 
   // node_modules/lucide-react/dist/esm/icons/percent.js
-  var __iconNode70 = [
+  var __iconNode72 = [
     ["line", { x1: "19", x2: "5", y1: "5", y2: "19", key: "1x9vlm" }],
     ["circle", { cx: "6.5", cy: "6.5", r: "2.5", key: "4mh3h7" }],
     ["circle", { cx: "17.5", cy: "17.5", r: "2.5", key: "1mdrzq" }]
   ];
-  var Percent = createLucideIcon("percent", __iconNode70);
+  var Percent = createLucideIcon("percent", __iconNode72);
 
   // node_modules/lucide-react/dist/esm/icons/phone.js
-  var __iconNode71 = [
+  var __iconNode73 = [
     [
       "path",
       {
@@ -4785,10 +4834,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Phone = createLucideIcon("phone", __iconNode71);
+  var Phone = createLucideIcon("phone", __iconNode73);
 
   // node_modules/lucide-react/dist/esm/icons/play.js
-  var __iconNode72 = [
+  var __iconNode74 = [
     [
       "path",
       {
@@ -4797,24 +4846,24 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Play = createLucideIcon("play", __iconNode72);
+  var Play = createLucideIcon("play", __iconNode74);
 
   // node_modules/lucide-react/dist/esm/icons/plus.js
-  var __iconNode73 = [
+  var __iconNode75 = [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "M12 5v14", key: "s699le" }]
   ];
-  var Plus = createLucideIcon("plus", __iconNode73);
+  var Plus = createLucideIcon("plus", __iconNode75);
 
   // node_modules/lucide-react/dist/esm/icons/power.js
-  var __iconNode74 = [
+  var __iconNode76 = [
     ["path", { d: "M12 2v10", key: "mnfbl" }],
     ["path", { d: "M18.4 6.6a9 9 0 1 1-12.77.04", key: "obofu9" }]
   ];
-  var Power = createLucideIcon("power", __iconNode74);
+  var Power = createLucideIcon("power", __iconNode76);
 
   // node_modules/lucide-react/dist/esm/icons/printer.js
-  var __iconNode75 = [
+  var __iconNode77 = [
     [
       "path",
       {
@@ -4825,10 +4874,29 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6", key: "1itne7" }],
     ["rect", { x: "6", y: "14", width: "12", height: "8", rx: "1", key: "1ue0tg" }]
   ];
-  var Printer = createLucideIcon("printer", __iconNode75);
+  var Printer = createLucideIcon("printer", __iconNode77);
+
+  // node_modules/lucide-react/dist/esm/icons/quote.js
+  var __iconNode78 = [
+    [
+      "path",
+      {
+        d: "M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z",
+        key: "rib7q0"
+      }
+    ],
+    [
+      "path",
+      {
+        d: "M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z",
+        key: "1ymkrd"
+      }
+    ]
+  ];
+  var Quote = createLucideIcon("quote", __iconNode78);
 
   // node_modules/lucide-react/dist/esm/icons/receipt.js
-  var __iconNode76 = [
+  var __iconNode79 = [
     [
       "path",
       { d: "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z", key: "q3az6g" }
@@ -4836,26 +4904,26 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8", key: "1h4pet" }],
     ["path", { d: "M12 17.5v-11", key: "1jc1ny" }]
   ];
-  var Receipt = createLucideIcon("receipt", __iconNode76);
+  var Receipt = createLucideIcon("receipt", __iconNode79);
 
   // node_modules/lucide-react/dist/esm/icons/refresh-cw.js
-  var __iconNode77 = [
+  var __iconNode80 = [
     ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
     ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
     ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
     ["path", { d: "M8 16H3v5", key: "1cv678" }]
   ];
-  var RefreshCw = createLucideIcon("refresh-cw", __iconNode77);
+  var RefreshCw = createLucideIcon("refresh-cw", __iconNode80);
 
   // node_modules/lucide-react/dist/esm/icons/rotate-ccw.js
-  var __iconNode78 = [
+  var __iconNode81 = [
     ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
     ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
   ];
-  var RotateCcw = createLucideIcon("rotate-ccw", __iconNode78);
+  var RotateCcw = createLucideIcon("rotate-ccw", __iconNode81);
 
   // node_modules/lucide-react/dist/esm/icons/save.js
-  var __iconNode79 = [
+  var __iconNode82 = [
     [
       "path",
       {
@@ -4866,10 +4934,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7", key: "1ydtos" }],
     ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
   ];
-  var Save = createLucideIcon("save", __iconNode79);
+  var Save = createLucideIcon("save", __iconNode82);
 
   // node_modules/lucide-react/dist/esm/icons/scroll-text.js
-  var __iconNode80 = [
+  var __iconNode83 = [
     ["path", { d: "M15 12h-5", key: "r7krc0" }],
     ["path", { d: "M15 8h-5", key: "1khuty" }],
     ["path", { d: "M19 17V5a2 2 0 0 0-2-2H4", key: "zz82l3" }],
@@ -4881,17 +4949,17 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var ScrollText = createLucideIcon("scroll-text", __iconNode80);
+  var ScrollText = createLucideIcon("scroll-text", __iconNode83);
 
   // node_modules/lucide-react/dist/esm/icons/search.js
-  var __iconNode81 = [
+  var __iconNode84 = [
     ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
   ];
-  var Search = createLucideIcon("search", __iconNode81);
+  var Search = createLucideIcon("search", __iconNode84);
 
   // node_modules/lucide-react/dist/esm/icons/send.js
-  var __iconNode82 = [
+  var __iconNode85 = [
     [
       "path",
       {
@@ -4901,19 +4969,19 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "m21.854 2.147-10.94 10.939", key: "12cjpa" }]
   ];
-  var Send = createLucideIcon("send", __iconNode82);
+  var Send = createLucideIcon("send", __iconNode85);
 
   // node_modules/lucide-react/dist/esm/icons/settings-2.js
-  var __iconNode83 = [
+  var __iconNode86 = [
     ["path", { d: "M14 17H5", key: "gfn3mx" }],
     ["path", { d: "M19 7h-9", key: "6i9tg" }],
     ["circle", { cx: "17", cy: "17", r: "3", key: "18b49y" }],
     ["circle", { cx: "7", cy: "7", r: "3", key: "dfmy0x" }]
   ];
-  var Settings2 = createLucideIcon("settings-2", __iconNode83);
+  var Settings2 = createLucideIcon("settings-2", __iconNode86);
 
   // node_modules/lucide-react/dist/esm/icons/settings.js
-  var __iconNode84 = [
+  var __iconNode87 = [
     [
       "path",
       {
@@ -4923,10 +4991,10 @@ var DomaineAppBundle = (() => {
     ],
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ];
-  var Settings = createLucideIcon("settings", __iconNode84);
+  var Settings = createLucideIcon("settings", __iconNode87);
 
   // node_modules/lucide-react/dist/esm/icons/shield-alert.js
-  var __iconNode85 = [
+  var __iconNode88 = [
     [
       "path",
       {
@@ -4937,10 +5005,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 8v4", key: "1got3b" }],
     ["path", { d: "M12 16h.01", key: "1drbdi" }]
   ];
-  var ShieldAlert = createLucideIcon("shield-alert", __iconNode85);
+  var ShieldAlert = createLucideIcon("shield-alert", __iconNode88);
 
   // node_modules/lucide-react/dist/esm/icons/shield-check.js
-  var __iconNode86 = [
+  var __iconNode89 = [
     [
       "path",
       {
@@ -4950,10 +5018,10 @@ var DomaineAppBundle = (() => {
     ],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ];
-  var ShieldCheck = createLucideIcon("shield-check", __iconNode86);
+  var ShieldCheck = createLucideIcon("shield-check", __iconNode89);
 
   // node_modules/lucide-react/dist/esm/icons/shield-off.js
-  var __iconNode87 = [
+  var __iconNode90 = [
     ["path", { d: "m2 2 20 20", key: "1ooewy" }],
     [
       "path",
@@ -4970,10 +5038,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var ShieldOff = createLucideIcon("shield-off", __iconNode87);
+  var ShieldOff = createLucideIcon("shield-off", __iconNode90);
 
   // node_modules/lucide-react/dist/esm/icons/sliders-horizontal.js
-  var __iconNode88 = [
+  var __iconNode91 = [
     ["path", { d: "M10 5H3", key: "1qgfaw" }],
     ["path", { d: "M12 19H3", key: "yhmn1j" }],
     ["path", { d: "M14 3v4", key: "1sua03" }],
@@ -4984,10 +5052,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M8 10v4", key: "tgpxqk" }],
     ["path", { d: "M8 12H3", key: "a7s4jb" }]
   ];
-  var SlidersHorizontal = createLucideIcon("sliders-horizontal", __iconNode88);
+  var SlidersHorizontal = createLucideIcon("sliders-horizontal", __iconNode91);
 
   // node_modules/lucide-react/dist/esm/icons/sparkles.js
-  var __iconNode89 = [
+  var __iconNode92 = [
     [
       "path",
       {
@@ -4999,10 +5067,10 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M22 4h-4", key: "gwowj6" }],
     ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }]
   ];
-  var Sparkles = createLucideIcon("sparkles", __iconNode89);
+  var Sparkles = createLucideIcon("sparkles", __iconNode92);
 
   // node_modules/lucide-react/dist/esm/icons/square-pen.js
-  var __iconNode90 = [
+  var __iconNode93 = [
     ["path", { d: "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7", key: "1m0v6g" }],
     [
       "path",
@@ -5012,10 +5080,10 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var SquarePen = createLucideIcon("square-pen", __iconNode90);
+  var SquarePen = createLucideIcon("square-pen", __iconNode93);
 
   // node_modules/lucide-react/dist/esm/icons/star.js
-  var __iconNode91 = [
+  var __iconNode94 = [
     [
       "path",
       {
@@ -5024,19 +5092,19 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Star = createLucideIcon("star", __iconNode91);
+  var Star = createLucideIcon("star", __iconNode94);
 
   // node_modules/lucide-react/dist/esm/icons/table-properties.js
-  var __iconNode92 = [
+  var __iconNode95 = [
     ["path", { d: "M15 3v18", key: "14nvp0" }],
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M21 9H3", key: "1338ky" }],
     ["path", { d: "M21 15H3", key: "9uk58r" }]
   ];
-  var TableProperties = createLucideIcon("table-properties", __iconNode92);
+  var TableProperties = createLucideIcon("table-properties", __iconNode95);
 
   // node_modules/lucide-react/dist/esm/icons/thumbs-up.js
-  var __iconNode93 = [
+  var __iconNode96 = [
     ["path", { d: "M7 10v12", key: "1qc93n" }],
     [
       "path",
@@ -5046,27 +5114,27 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode93);
+  var ThumbsUp = createLucideIcon("thumbs-up", __iconNode96);
 
   // node_modules/lucide-react/dist/esm/icons/trash-2.js
-  var __iconNode94 = [
+  var __iconNode97 = [
     ["path", { d: "M10 11v6", key: "nco0om" }],
     ["path", { d: "M14 11v6", key: "outv1u" }],
     ["path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6", key: "miytrc" }],
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", key: "e791ji" }]
   ];
-  var Trash2 = createLucideIcon("trash-2", __iconNode94);
+  var Trash2 = createLucideIcon("trash-2", __iconNode97);
 
   // node_modules/lucide-react/dist/esm/icons/trending-up.js
-  var __iconNode95 = [
+  var __iconNode98 = [
     ["path", { d: "M16 7h6v6", key: "box55l" }],
     ["path", { d: "m22 7-8.5 8.5-5-5L2 17", key: "1t1m79" }]
   ];
-  var TrendingUp = createLucideIcon("trending-up", __iconNode95);
+  var TrendingUp = createLucideIcon("trending-up", __iconNode98);
 
   // node_modules/lucide-react/dist/esm/icons/triangle-alert.js
-  var __iconNode96 = [
+  var __iconNode99 = [
     [
       "path",
       {
@@ -5077,56 +5145,56 @@ var DomaineAppBundle = (() => {
     ["path", { d: "M12 9v4", key: "juzpu7" }],
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ];
-  var TriangleAlert = createLucideIcon("triangle-alert", __iconNode96);
+  var TriangleAlert = createLucideIcon("triangle-alert", __iconNode99);
 
   // node_modules/lucide-react/dist/esm/icons/undo-2.js
-  var __iconNode97 = [
+  var __iconNode100 = [
     ["path", { d: "M9 14 4 9l5-5", key: "102s5s" }],
     ["path", { d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11", key: "f3b9sd" }]
   ];
-  var Undo2 = createLucideIcon("undo-2", __iconNode97);
+  var Undo2 = createLucideIcon("undo-2", __iconNode100);
 
   // node_modules/lucide-react/dist/esm/icons/upload.js
-  var __iconNode98 = [
+  var __iconNode101 = [
     ["path", { d: "M12 3v12", key: "1x0j5s" }],
     ["path", { d: "m17 8-5-5-5 5", key: "7q97r8" }],
     ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }]
   ];
-  var Upload = createLucideIcon("upload", __iconNode98);
+  var Upload = createLucideIcon("upload", __iconNode101);
 
   // node_modules/lucide-react/dist/esm/icons/user-check.js
-  var __iconNode99 = [
+  var __iconNode102 = [
     ["path", { d: "m16 11 2 2 4-4", key: "9rsbq5" }],
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }]
   ];
-  var UserCheck = createLucideIcon("user-check", __iconNode99);
+  var UserCheck = createLucideIcon("user-check", __iconNode102);
 
   // node_modules/lucide-react/dist/esm/icons/user-round.js
-  var __iconNode100 = [
+  var __iconNode103 = [
     ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
     ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
   ];
-  var UserRound = createLucideIcon("user-round", __iconNode100);
+  var UserRound = createLucideIcon("user-round", __iconNode103);
 
   // node_modules/lucide-react/dist/esm/icons/user.js
-  var __iconNode101 = [
+  var __iconNode104 = [
     ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
     ["circle", { cx: "12", cy: "7", r: "4", key: "17ys0d" }]
   ];
-  var User2 = createLucideIcon("user", __iconNode101);
+  var User2 = createLucideIcon("user", __iconNode104);
 
   // node_modules/lucide-react/dist/esm/icons/users.js
-  var __iconNode102 = [
+  var __iconNode105 = [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["path", { d: "M16 3.128a4 4 0 0 1 0 7.744", key: "16gr8j" }],
     ["path", { d: "M22 21v-2a4 4 0 0 0-3-3.87", key: "kshegd" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }]
   ];
-  var Users = createLucideIcon("users", __iconNode102);
+  var Users = createLucideIcon("users", __iconNode105);
 
   // node_modules/lucide-react/dist/esm/icons/utensils-crossed.js
-  var __iconNode103 = [
+  var __iconNode106 = [
     ["path", { d: "m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8", key: "n7qcjb" }],
     [
       "path",
@@ -5135,18 +5203,18 @@ var DomaineAppBundle = (() => {
     ["path", { d: "m2.1 21.8 6.4-6.3", key: "yn04lh" }],
     ["path", { d: "m19 5-7 7", key: "194lzd" }]
   ];
-  var UtensilsCrossed = createLucideIcon("utensils-crossed", __iconNode103);
+  var UtensilsCrossed = createLucideIcon("utensils-crossed", __iconNode106);
 
   // node_modules/lucide-react/dist/esm/icons/utensils.js
-  var __iconNode104 = [
+  var __iconNode107 = [
     ["path", { d: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2", key: "cjf0a3" }],
     ["path", { d: "M7 2v20", key: "1473qp" }],
     ["path", { d: "M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7", key: "j28e5" }]
   ];
-  var Utensils = createLucideIcon("utensils", __iconNode104);
+  var Utensils = createLucideIcon("utensils", __iconNode107);
 
   // node_modules/lucide-react/dist/esm/icons/waves.js
-  var __iconNode105 = [
+  var __iconNode108 = [
     [
       "path",
       {
@@ -5169,19 +5237,19 @@ var DomaineAppBundle = (() => {
       }
     ]
   ];
-  var Waves = createLucideIcon("waves", __iconNode105);
+  var Waves = createLucideIcon("waves", __iconNode108);
 
   // node_modules/lucide-react/dist/esm/icons/wifi.js
-  var __iconNode106 = [
+  var __iconNode109 = [
     ["path", { d: "M12 20h.01", key: "zekei9" }],
     ["path", { d: "M2 8.82a15 15 0 0 1 20 0", key: "dnpr2z" }],
     ["path", { d: "M5 12.859a10 10 0 0 1 14 0", key: "1x1e6c" }],
     ["path", { d: "M8.5 16.429a5 5 0 0 1 7 0", key: "1bycff" }]
   ];
-  var Wifi = createLucideIcon("wifi", __iconNode106);
+  var Wifi = createLucideIcon("wifi", __iconNode109);
 
   // node_modules/lucide-react/dist/esm/icons/wine.js
-  var __iconNode107 = [
+  var __iconNode110 = [
     ["path", { d: "M8 22h8", key: "rmew8v" }],
     ["path", { d: "M7 10h10", key: "1101jm" }],
     ["path", { d: "M12 15v7", key: "t2xh3l" }],
@@ -5190,14 +5258,14 @@ var DomaineAppBundle = (() => {
       { d: "M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z", key: "10ffi3" }
     ]
   ];
-  var Wine = createLucideIcon("wine", __iconNode107);
+  var Wine = createLucideIcon("wine", __iconNode110);
 
   // node_modules/lucide-react/dist/esm/icons/x.js
-  var __iconNode108 = [
+  var __iconNode111 = [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ];
-  var X = createLucideIcon("x", __iconNode108);
+  var X = createLucideIcon("x", __iconNode111);
 
   // src/modules/menage/actions.ts
   var nowIso = () => (/* @__PURE__ */ new Date()).toISOString();
@@ -6568,7 +6636,7 @@ var DomaineAppBundle = (() => {
   }
   function getAppsScriptCode() {
     return `// =========================================================================
-// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V11)
+// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V12)
 // =========================================================================
 // Instructions d'installation (1 minute) :
 // 1. Dans votre Google Sheet, allez dans : Extensions > Apps Script
@@ -6616,8 +6684,11 @@ var DomaineAppBundle = (() => {
 //    il faut que les donn\xE9es soient prot\xE9g\xE9es par la cl\xE9 (sinon le livret reste ferm\xE9) ;
 //  - messages et questionnaires envoy\xE9s depuis le livret, rang\xE9s dans l'onglet
 //    "Livret_Messages" et signal\xE9s par e-mail.
-// Mise \xE0 jour depuis la V10 : collez ce code, puis D\xE9ployer > G\xE9rer les d\xE9ploiements >
-// crayon > Nouvelle version > D\xE9ployer (aucune nouvelle autorisation).
+//
+// V12 : livre d'or du livret (mots des voyageurs, affich\xE9s seulement si leur auteur l'accepte
+// et si vous cliquez sur \xAB Afficher dans le livre d'or \xBB).
+// Mise \xE0 jour depuis la V10 ou la V11 : collez TOUT ce code (jusqu'\xE0 la derni\xE8re ligne), puis
+// D\xE9ployer > G\xE9rer les d\xE9ploiements > crayon > Nouvelle version > D\xE9ployer (aucune nouvelle autorisation).
 // =========================================================================
 
 var APP_DATA_SHEET = "_Donn\xE9es_App";
@@ -7306,7 +7377,7 @@ function doPost(e) {
 // V10 : ACC\xC8S D\xC9DI\xC9 DES PERSONNES, PHOTOS (GOOGLE DRIVE), RAPPELS PAR E-MAIL, CL\xC9
 // =========================================================================
 
-var CONNECTOR_VERSION = 11;
+var CONNECTOR_VERSION = 12;
 var ADMIN_KEY_PROP = "CLE_ADMIN";
 var PHOTO_FOLDER_PROP = "DOSSIER_PHOTOS_MENAGE";
 var PHOTO_FOLDER_NAME = "Domaine Sylvaria - Photos m\xE9nage";
@@ -7942,10 +8013,34 @@ function bookForms_(ctx) {
   var pub = ctx.pub;
   var contact = pub.contactForm !== false && (ctx.guest || pub.contactAudience !== "guests");
   var survey = pub.survey === true && (ctx.guest || pub.surveyAudience !== "guests") && bookQuestions_(pub).length > 0;
+  // Livre d'or : \xE9crire (voyageurs par d\xE9faut) ; lire les messages accept\xE9s (tout le monde par d\xE9faut)
+  var guestbookOn = pub.guestbook !== false;
   return {
     contact: contact,
-    survey: survey ? { intro: textOf_(pub.surveyIntro), questions: bookQuestions_(pub) } : null
+    survey: survey ? { intro: textOf_(pub.surveyIntro), questions: bookQuestions_(pub) } : null,
+    guestbook: guestbookOn ? {
+      write: ctx.guest || pub.guestbookAudience === "public",
+      show: pub.guestbookShow !== false,
+      intro: textOf_(pub.guestbookIntro)
+    } : null
   };
+}
+
+// Messages du livre d'or accept\xE9s par l'administratrice (et par leur auteur), les plus r\xE9cents d'abord
+function guestbookEntries_(ss) {
+  var sheet = ss.getSheetByName(BOOK_SHEET);
+  var list = [];
+  if (!sheet || sheet.getLastRow() < 2) return list;
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, BOOK_HEADERS.length).getValues();
+  values.forEach(function(r) {
+    if (!/livre/i.test(textOf_(r[1])) || !/affich/i.test(textOf_(r[8]))) return;
+    var detail = {};
+    try { detail = JSON.parse(textOf_(r[10]) || "{}") || {}; } catch(errJson) {}
+    if (detail.consent !== true) return;
+    list.push({ name: textOf_(r[2]).slice(0, 40), message: textOf_(r[5]), at: textOf_(detail.at) || textOf_(r[0]) });
+  });
+  list.reverse();
+  return list.slice(0, 60);
 }
 
 function byOrder_(a, b) {
@@ -7992,9 +8087,11 @@ function publicBookData_(ctx) {
   });
 
   var logoEntry = ctx.store.appStores.logo;
+  var forms = bookForms_(ctx);
   return {
     status: "success",
     version: CONNECTOR_VERSION,
+    guestbook: forms.guestbook && forms.guestbook.show ? guestbookEntries_(ctx.ss) : [],
     audience: ctx.guest ? "guests" : "public",
     guestRefused: ctx.guestRefused,
     book: {
@@ -8014,7 +8111,7 @@ function publicBookData_(ctx) {
     },
     photoIds: bookPhotoIds_(ctx, sections),
     hasLogo: ctx.book.showLogo !== false && !!(logoEntry && typeof logoEntry.value === "string" && logoEntry.value),
-    forms: bookForms_(ctx),
+    forms: forms,
     updatedAt: textOf_(settings.updatedAt)
   };
 }
@@ -8065,8 +8162,8 @@ function receiveBookMessage_(data) {
   var ctx = bookContext_(data.id, data.v);
   if (ctx.error) return ctx.error;
   var forms = bookForms_(ctx);
-  var kind = data.kind === "survey" ? "survey" : "contact";
-  if ((kind === "contact" && !forms.contact) || (kind === "survey" && !forms.survey)) {
+  var kind = data.kind === "survey" ? "survey" : data.kind === "guestbook" ? "guestbook" : "contact";
+  if ((kind === "contact" && !forms.contact) || (kind === "survey" && !forms.survey) || (kind === "guestbook" && !(forms.guestbook && forms.guestbook.write))) {
     return { status: "error", code: "formulaire_ferme", message: "Ce formulaire n'est pas disponible." };
   }
   // Champ invisible rempli : envoi automatique, ignor\xE9 sans le dire
@@ -8088,6 +8185,8 @@ function receiveBookMessage_(data) {
       }
     });
     if (Object.keys(ratings).length === 0 && !message) return { status: "error", message: "Donnez au moins une note ou un commentaire." };
+  } else if (kind === "guestbook") {
+    if (!message) return { status: "error", message: "\xC9crivez votre message pour le livre d'or." };
   } else if (!message || !contact) {
     return { status: "error", message: "Indiquez votre message et un moyen de vous r\xE9pondre (e-mail ou t\xE9l\xE9phone)." };
   }
@@ -8097,11 +8196,15 @@ function receiveBookMessage_(data) {
 
   var now = new Date();
   var id = "m" + now.getTime().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
-  var notes = Object.keys(ratings).map(function(k) { return labels[k] + " : " + ratings[k] + "/5"; }).join(" \xB7 ");
+  var consent = kind === "guestbook" && data.consent === true;
+  var notes = kind === "guestbook"
+    ? (consent ? "Accepte d'\xEAtre affich\xE9 dans le livre d'or" : "Ne souhaite pas \xEAtre affich\xE9")
+    : Object.keys(ratings).map(function(k) { return labels[k] + " : " + ratings[k] + "/5"; }).join(" \xB7 ");
+  var typeLabel = kind === "survey" ? "Questionnaire" : kind === "guestbook" ? "Livre d'or" : "Demande";
   var row = [
-    Utilities.formatDate(now, "Europe/Paris", "yyyy-MM-dd HH:mm"), kind === "survey" ? "Questionnaire" : "Demande",
-    name, contact, subject, message, notes, ctx.guest ? "Voyageurs" : "Public", "Nouveau", id,
-    JSON.stringify({ at: now.toISOString(), kind: kind, ratings: ratings, labels: labels })
+    Utilities.formatDate(now, "Europe/Paris", "yyyy-MM-dd HH:mm"), typeLabel,
+    name, kind === "guestbook" ? "" : contact, kind === "guestbook" ? "" : subject, message, notes, ctx.guest ? "Voyageurs" : "Public", "Nouveau", id,
+    JSON.stringify({ at: now.toISOString(), kind: kind, ratings: ratings, labels: labels, consent: consent })
   ];
   var sheet = bookSheet_(ctx.ss);
   // Format texte : un message qui commence par \xAB = \xBB n'est jamais pris pour une formule
@@ -8120,9 +8223,10 @@ function receiveBookMessage_(data) {
       ].filter(function(l) { return l; });
       var mail = {
         to: to,
-        subject: (kind === "survey" ? "Livret : nouvelle r\xE9ponse au questionnaire" : "Livret : nouveau message") + (name ? " de " + name : ""),
+        subject: (kind === "survey" ? "Livret : nouvelle r\xE9ponse au questionnaire" : kind === "guestbook" ? "Livret : nouveau mot dans le livre d'or" : "Livret : nouveau message") + (name ? " de " + name : ""),
         htmlBody: "<div style=\\"font-family:Arial,sans-serif;font-size:14px;color:#171717;max-width:560px\\">" +
-          "<h2 style=\\"font-family:Georgia,serif;color:#325032;margin:0 0 10px\\">" + (kind === "survey" ? "Questionnaire de satisfaction" : "Message re\xE7u depuis le livret") + "</h2>" +
+          "<h2 style=\\"font-family:Georgia,serif;color:#325032;margin:0 0 10px\\">" + (kind === "survey" ? "Questionnaire de satisfaction" : kind === "guestbook" ? "Livre d'or" : "Message re\xE7u depuis le livret") + "</h2>" +
+          (kind === "guestbook" && consent ? "<p style=\\"color:#525252\\">Il n'appara\xEEtra dans le livret que si vous cliquez sur \xAB Afficher dans le livre d'or \xBB (onglet Livret d'accueil > Messages).</p>" : "") +
           lines.join("<br>") +
           "<p style=\\"color:#a3a3a3;font-size:12px;margin-top:18px\\">" + esc_(estName) + " \xB7 envoy\xE9 depuis le livret d'accueil (" + (ctx.guest ? "lien voyageurs" : "lien public") + "). Tous les messages : onglet " + BOOK_SHEET + " du Google Sheet ou onglet Livret d'accueil de l'application.</p></div>",
         name: estName
@@ -8146,11 +8250,14 @@ function bookMessages_() {
       if (!id) return;
       var detail = {};
       try { detail = JSON.parse(textOf_(r[10]) || "{}") || {}; } catch(errJson) {}
+      var type = textOf_(r[1]);
       list.push({
-        id: id, at: textOf_(detail.at) || textOf_(r[0]), kind: detail.kind === "survey" || /question/i.test(textOf_(r[1])) ? "survey" : "contact",
+        id: id, at: textOf_(detail.at) || textOf_(r[0]),
+        kind: detail.kind === "survey" || /question/i.test(type) ? "survey" : detail.kind === "guestbook" || /livre/i.test(type) ? "guestbook" : "contact",
         name: textOf_(r[2]), contact: textOf_(r[3]), subject: textOf_(r[4]), message: textOf_(r[5]),
         ratings: isObject_(detail.ratings) ? detail.ratings : {}, labels: isObject_(detail.labels) ? detail.labels : {},
-        guest: /voyageur/i.test(textOf_(r[7])), status: /trait/i.test(textOf_(r[8])) ? "done" : "new"
+        consent: detail.consent === true,
+        guest: /voyageur/i.test(textOf_(r[7])), status: /affich/i.test(textOf_(r[8])) ? "published" : /trait/i.test(textOf_(r[8])) ? "done" : "new"
       });
     });
   }
@@ -8163,18 +8270,29 @@ function setBookMessageStatus_(ids, status) {
   listOf_(ids).forEach(function(id) { wanted[textOf_(id)] = true; });
   var sheet = getTargetSpreadsheet().getSheetByName(BOOK_SHEET);
   var changed = 0;
+  var refused = 0;
   if (sheet && sheet.getLastRow() > 1) {
     var n = sheet.getLastRow() - 1;
-    var idCells = sheet.getRange(2, 10, n, 1).getValues();
+    var rows = sheet.getRange(2, 1, n, BOOK_HEADERS.length).getValues();
     for (var i = 0; i < n; i++) {
-      if (wanted[textOf_(idCells[i][0])]) {
-        sheet.getRange(i + 2, 9).setValue(status === "done" ? "Trait\xE9" : "Nouveau");
-        changed++;
+      if (!wanted[textOf_(rows[i][9])]) continue;
+      if (status === "published") {
+        // Seul un mot du livre d'or dont l'auteur a accept\xE9 l'affichage peut \xEAtre montr\xE9
+        var detail = {};
+        try { detail = JSON.parse(textOf_(rows[i][10]) || "{}") || {}; } catch(errJson) {}
+        if (!/livre/i.test(textOf_(rows[i][1])) || detail.consent !== true) {
+          refused++;
+          continue;
+        }
       }
+      sheet.getRange(i + 2, 9).setValue(status === "published" ? "Affich\xE9" : status === "done" ? "Trait\xE9" : "Nouveau");
+      changed++;
     }
   }
-  return { status: "success", version: CONNECTOR_VERSION, changed: changed };
+  return { status: "success", version: CONNECTOR_VERSION, changed: changed, refused: refused };
 }
+
+// ===== FIN DU CONNECTEUR (V12) : si cette ligne n'est pas tout en bas dans Apps Script, le code coll\xE9 est incomplet. =====
 `;
   }
 
@@ -10161,6 +10279,11 @@ function setBookMessageStatus_(ids, status) {
   async function requireV11(target = currentTarget()) {
     const info = await connectorInfo(target);
     if (info.version < 11) throw new Error(CONNECTOR_V11_MESSAGE);
+  }
+  var CONNECTOR_V12_MESSAGE = "Le livre d'or demande la mise \xE0 jour du connecteur Google (V12) : Param\xE9trage > Google Sheets, copiez TOUT le nouveau code dans Apps Script et d\xE9ployez une nouvelle version.";
+  async function requireV12(target = currentTarget()) {
+    const info = await connectorInfo(target, true);
+    if (info.version < 12) throw new Error(CONNECTOR_V12_MESSAGE);
   }
   async function connectorPost(body, target = currentTarget()) {
     if (!target) throw new Error(NO_CONNECTOR_MESSAGE);
@@ -14209,7 +14332,7 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
           (book.subtitle || catalog.establishment.subtitle) && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("p", { className: "text-[12px] text-neutral-500 mt-0.5", children: book.subtitle || catalog.establishment.subtitle })
         ] }) })
       ] }),
-      sections.length + extraNav.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "px-4 mt-3 overflow-x-auto hide-scrollbar", children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "flex gap-1.5 pb-1", children: [...sections.map((s) => ({ id: s.id, label: s.title || SECTION_META[s.kind].label })), ...extraNav].map((n) => /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
+      sections.length + extraNav.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "px-4 mt-3", children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "flex flex-wrap gap-1.5", children: [...sections.map((s) => ({ id: s.id, label: s.title || SECTION_META[s.kind].label })), ...extraNav].map((n) => /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
         "button",
         {
           type: "button",
@@ -14359,7 +14482,8 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
     const allowed = (a) => audience === "guests" || a !== "guests";
     return {
       contact: p.contactForm && allowed(p.contactAudience),
-      survey: p.survey && allowed(p.surveyAudience) && questions.length > 0 ? { intro: p.surveyIntro, questions } : null
+      survey: p.survey && allowed(p.surveyAudience) && questions.length > 0 ? { intro: p.surveyIntro, questions } : null,
+      guestbook: p.guestbook ? { write: audience === "guests" || p.guestbookAudience === "public", show: p.guestbookShow, intro: p.guestbookIntro } : null
     };
   }
   async function loadPublicBook(connectorUrl, publicId, guestCode) {
@@ -14381,8 +14505,10 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
       hasLogo: !!data.hasLogo,
       forms: {
         contact: !!forms.contact,
-        survey: forms.survey ? { intro: str(forms.survey.intro), questions: list(forms.survey.questions).map((q) => ({ id: str(q.id), label: str(q.label) })).filter((q) => q.id && q.label) } : null
-      }
+        survey: forms.survey ? { intro: str(forms.survey.intro), questions: list(forms.survey.questions).map((q) => ({ id: str(q.id), label: str(q.label) })).filter((q) => q.id && q.label) } : null,
+        guestbook: forms.guestbook ? { write: !!forms.guestbook.write, show: !!forms.guestbook.show, intro: str(forms.guestbook.intro) } : null
+      },
+      guestbook: list(data.guestbook).map((g) => ({ name: str(g?.name), message: str(g?.message), at: str(g?.at) })).filter((g) => g.message.trim())
     };
   }
   async function loadPublicPhotos(connectorUrl, publicId, guestCode) {
@@ -14413,7 +14539,7 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
     return list(data.messages).map((m) => ({
       id: str(m.id),
       at: str(m.at),
-      kind: m.kind === "survey" ? "survey" : "contact",
+      kind: m.kind === "survey" || m.kind === "guestbook" ? m.kind : "contact",
       name: str(m.name),
       contact: str(m.contact),
       subject: str(m.subject),
@@ -14421,12 +14547,17 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
       ratings: m.ratings && typeof m.ratings === "object" ? m.ratings : {},
       labels: m.labels && typeof m.labels === "object" ? m.labels : {},
       guest: !!m.guest,
-      status: m.status === "done" ? "done" : "new"
+      consent: m.consent === true,
+      status: m.status === "published" ? "published" : m.status === "done" ? "done" : "new"
     }));
   }
   async function setBookMessagesStatus(ids, status) {
-    await requireV11();
-    await connectorPost({ action: "livretMessageStatus", ids, status });
+    if (status === "published") await requireV12();
+    else await requireV11();
+    const res = await connectorPost({ action: "livretMessageStatus", ids, status });
+    if (status === "published" && (res.changed || 0) === 0) {
+      throw new Error("Ce mot ne peut pas \xEAtre affich\xE9 : son auteur n'a pas accept\xE9 qu'il apparaisse dans le livre d'or.");
+    }
   }
   async function testPublishedBook(connectorUrl, publicId, guestCode) {
     return loadPublicBook(connectorUrl, publicId, guestCode);
@@ -14435,9 +14566,19 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
   // src/modules/livret/BookForms.tsx
   var import_react24 = __require("react");
   var import_jsx_runtime20 = __require("react/jsx-runtime");
-  var FORM_NAV = { contact: { id: "form-contact", label: "Nous \xE9crire" }, survey: { id: "form-survey", label: "Votre avis" } };
-  function formsNav(forms) {
-    return [forms.contact && FORM_NAV.contact, forms.survey && FORM_NAV.survey].filter(Boolean);
+  var FORM_NAV = {
+    guestbook: { id: "form-guestbook", label: "Livre d'or" },
+    contact: { id: "form-contact", label: "Nous \xE9crire" },
+    survey: { id: "form-survey", label: "Votre avis" }
+  };
+  function guestbookVisible(forms, entries, preview) {
+    const g = forms.guestbook;
+    return !!g && (g.write || g.show && (entries.length > 0 || preview));
+  }
+  function formsNav(forms, entries = [], preview = false) {
+    return [guestbookVisible(forms, entries, preview) && FORM_NAV.guestbook, forms.contact && FORM_NAV.contact, forms.survey && FORM_NAV.survey].filter(
+      Boolean
+    );
   }
   var input = "w-full px-3 py-2.5 text-[13px] bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-1 text-neutral-900";
   var Card = ({ id, title, color, icon, children }) => /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("section", { id: `livret-${id}`, className: "bg-white rounded-2xl border border-neutral-100 p-4 scroll-mt-3", children: [
@@ -14573,7 +14714,79 @@ Ajoutez-le \xE0 l'\xE9cran d'accueil de votre t\xE9l\xE9phone. Ne le transmettez
       /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(Privacy, { name: establishmentName })
     ] }) });
   };
-  var BookForms = ({ forms, color, establishmentName, onSend }) => /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)(import_jsx_runtime20.Fragment, { children: [
+  function monthOf(iso) {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  }
+  var GUESTBOOK_STEP = 5;
+  var GuestbookCard = ({ color, establishmentName, guestbook, entries, onSend }) => {
+    const [name, setName] = (0, import_react24.useState)("");
+    const [message, setMessage] = (0, import_react24.useState)("");
+    const [consent, setConsent] = (0, import_react24.useState)(false);
+    const [website, setWebsite] = (0, import_react24.useState)("");
+    const [shown, setShown] = (0, import_react24.useState)(GUESTBOOK_STEP);
+    const { state, error, send } = useSend(onSend);
+    const [missing, setMissing] = (0, import_react24.useState)("");
+    const [sentConsent, setSentConsent] = (0, import_react24.useState)(false);
+    const preview = !onSend;
+    const submit = (e) => {
+      e.preventDefault();
+      if (!message.trim()) return setMissing("\xC9crivez votre mot.");
+      setMissing("");
+      setSentConsent(consent);
+      send({ kind: "guestbook", name, message, consent, website });
+    };
+    return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(Card, { id: FORM_NAV.guestbook.id, title: "Livre d'or", color, icon: /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(BookHeart, { className: "w-4 h-4" }), children: /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "space-y-3", children: [
+      guestbook.show && entries.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("div", { className: "space-y-2", children: [
+        entries.slice(0, shown).map((g, i) => /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("figure", { className: "p-3 rounded-xl", style: { background: tint(color, 0.06) }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(Quote, { className: "w-4 h-4 mb-1 opacity-60", style: { color } }),
+          /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("blockquote", { className: "font-serif text-[14px] leading-relaxed text-neutral-800 whitespace-pre-line break-words", children: g.message }),
+          /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("figcaption", { className: "text-[11px] text-neutral-500 mt-1.5", children: [g.name.trim(), monthOf(g.at)].filter(Boolean).join(" \xB7 ") })
+        ] }, i)),
+        entries.length > shown && /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("button", { type: "button", onClick: () => setShown((n) => n + GUESTBOOK_STEP * 2), className: "text-[12px] font-semibold underline cursor-pointer", style: { color }, children: [
+          "Lire d'autres mots (",
+          entries.length - shown,
+          ")"
+        ] })
+      ] }),
+      guestbook.show && entries.length === 0 && preview && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("p", { className: "text-[11px] text-neutral-500 italic", children: "Les mots que vous aurez accept\xE9s s'afficheront ici." }),
+      guestbook.write && (state === "sent" ? /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+        Done,
+        {
+          text: sentConsent ? `Merci pour votre mot ! Il appara\xEEtra dans le livre d'or une fois relu par ${establishmentName || "vos h\xF4tes"}.` : "Merci pour votre mot !",
+          color
+        }
+      ) : /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("form", { onSubmit: submit, className: "space-y-2.5", children: [
+        guestbook.intro.trim() && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("p", { className: "text-[13px] leading-relaxed text-neutral-700 whitespace-pre-line", children: guestbook.intro }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("textarea", { className: input, value: message, onChange: (e) => setMessage(e.target.value), placeholder: "Votre mot *", rows: 4, maxLength: 3e3 }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("input", { className: input, value: name, onChange: (e) => setName(e.target.value), placeholder: "Votre pr\xE9nom (facultatif)", maxLength: 80, autoComplete: "given-name" }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("label", { className: "flex items-start gap-2 text-[12px] text-neutral-700 cursor-pointer", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("input", { type: "checkbox", checked: consent, onChange: (e) => setConsent(e.target.checked), className: "mt-0.5 w-4 h-4 shrink-0", style: { accentColor: color } }),
+          /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("span", { children: [
+            "J'accepte que mon mot",
+            name.trim() ? " et mon pr\xE9nom" : "",
+            " soient affich\xE9s dans le livre d'or de ce livret."
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("input", { type: "text", tabIndex: -1, autoComplete: "off", value: website, onChange: (e) => setWebsite(e.target.value), className: "hidden", "aria-hidden": "true", name: "website" }),
+        (missing || error) && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)("p", { className: "text-[12px] text-red-700", children: missing || error }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(SubmitButton, { color, busy: state === "sending", label: "Signer le livre d'or" }),
+        /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)("p", { className: "text-[10px] text-neutral-400 leading-snug", children: [
+          "Sans cette case coch\xE9e, votre mot n'est lu que par ",
+          establishmentName || "l'\xE9tablissement",
+          ". M\xEAme coch\xE9e, il n'appara\xEEt qu'apr\xE8s avoir \xE9t\xE9 relu."
+        ] })
+      ] }))
+    ] }) });
+  };
+  var BookForms = ({
+    forms,
+    color,
+    establishmentName,
+    onSend,
+    guestbook = []
+  }) => /* @__PURE__ */ (0, import_jsx_runtime20.jsxs)(import_jsx_runtime20.Fragment, { children: [
+    forms.guestbook && guestbookVisible(forms, guestbook, !onSend) && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(GuestbookCard, { color, establishmentName, guestbook: forms.guestbook, entries: guestbook, onSend }),
     forms.contact && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(ContactForm, { color, establishmentName, onSend }),
     forms.survey && /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(SurveyForm, { color, establishmentName, survey: forms.survey, onSend })
   ] });
@@ -15075,9 +15288,9 @@ ${establishmentName}
           ")."
         ] }),
         conn.kind === "info" && /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("ul", { className: "space-y-1.5 text-[11px]", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("li", { className: `flex items-start gap-1.5 ${conn.info.version >= 11 ? "text-emerald-800" : "text-orange-800"}`, children: [
-            conn.info.version >= 11 ? /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(CircleCheck, { className: "w-3.5 h-3.5 shrink-0 mt-px" }) : /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(TriangleAlert, { className: "w-3.5 h-3.5 shrink-0 mt-px" }),
-            conn.info.version >= 11 ? `Connecteur \xE0 jour (V${conn.info.version}).` : CONNECTOR_V11_MESSAGE
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("li", { className: `flex items-start gap-1.5 ${conn.info.version >= 12 ? "text-emerald-800" : "text-orange-800"}`, children: [
+            conn.info.version >= 12 ? /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(CircleCheck, { className: "w-3.5 h-3.5 shrink-0 mt-px" }) : /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(TriangleAlert, { className: "w-3.5 h-3.5 shrink-0 mt-px" }),
+            conn.info.version >= 12 ? `Connecteur \xE0 jour (V${conn.info.version}).` : conn.info.version >= 11 ? CONNECTOR_V12_MESSAGE : CONNECTOR_V11_MESSAGE
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("li", { className: `flex items-start gap-1.5 ${conn.info.protected && conn.info.admin ? "text-emerald-800" : "text-orange-800"}`, children: [
             conn.info.protected && conn.info.admin ? /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(ShieldCheck, { className: "w-3.5 h-3.5 shrink-0 mt-px" }) : /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(TriangleAlert, { className: "w-3.5 h-3.5 shrink-0 mt-px" }),
@@ -15184,6 +15397,28 @@ ${establishmentName}
           /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "p-3 rounded-xl border border-neutral-200 space-y-2.5", children: [
             /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "flex items-center justify-between gap-3", children: [
               /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-xs font-bold text-neutral-900", children: "Livre d'or" }),
+                /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-[10px] text-neutral-500", children: "Un mot libre laiss\xE9 par vos voyageurs, sans note." })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Toggle, { checked: p.guestbook, onChange: (v) => onChange({ guestbook: v }), label: "Livre d'or" })
+            ] }),
+            p.guestbook && /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(import_jsx_runtime21.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Field, { label: "Qui peut \xE9crire", hint: p.guestbookAudience === "guests" ? "Conseill\xE9 : seules les personnes qui ont le lien voyageurs." : void 0, children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Select, { value: p.guestbookAudience, onChange: (v) => onChange({ guestbookAudience: v }), options: AUDIENCE_OPTIONS }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Field, { label: "Message d'invitation", children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(TextArea, { value: p.guestbookIntro, onChange: (v) => onChange({ guestbookIntro: v }), rows: 2 }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+                CheckboxRow,
+                {
+                  checked: p.guestbookShow,
+                  onChange: (v) => onChange({ guestbookShow: v }),
+                  label: "Afficher les mots dans le livret (lisibles par tout le monde)",
+                  hint: "Seulement les mots dont l'auteur l'a accept\xE9 ET que vous avez choisi d'afficher (onglet Messages). Rien n'est affich\xE9 automatiquement."
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "p-3 rounded-xl border border-neutral-200 space-y-2.5", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "flex items-center justify-between gap-3", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-xs font-bold text-neutral-900", children: "\xAB Nous \xE9crire \xBB" }),
                 /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-[10px] text-neutral-500", children: "Nom, e-mail ou t\xE9l\xE9phone, objet, message." })
               ] }),
@@ -15194,7 +15429,7 @@ ${establishmentName}
           /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "p-3 rounded-xl border border-neutral-200 space-y-2.5", children: [
             /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "flex items-center justify-between gap-3", children: [
               /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-xs font-bold text-neutral-900", children: "Questionnaire de satisfaction (facultatif)" }),
+                /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-xs font-bold text-neutral-900", children: "Questionnaire not\xE9 (facultatif)" }),
                 /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-[10px] text-neutral-500", children: "Une note de 1 \xE0 5 par question, un commentaire libre." })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Toggle, { checked: p.survey, onChange: (v) => onChange({ survey: v }), label: "Questionnaire de satisfaction" })
@@ -15240,6 +15475,7 @@ ${establishmentName}
   var FILTERS = [
     { id: "new", label: "\xC0 traiter" },
     { id: "all", label: "Tous" },
+    { id: "guestbook", label: "Livre d'or" },
     { id: "contact", label: "Demandes" },
     { id: "survey", label: "Questionnaires" }
   ];
@@ -15386,6 +15622,12 @@ ${m.message}
                 m.kind === "survey" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("span", { className: "px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-100 text-amber-800 flex items-center gap-0.5", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Star, { className: "w-2.5 h-2.5" }),
                   " Questionnaire"
+                ] }) : m.kind === "guestbook" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(import_jsx_runtime22.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("span", { className: "px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-rose-100 text-rose-800 flex items-center gap-0.5", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(BookHeart, { className: "w-2.5 h-2.5" }),
+                    " Livre d'or"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { className: `px-1.5 py-0.5 rounded-md text-[9px] font-bold ${m.consent ? "bg-neutral-100 text-neutral-600" : "bg-neutral-100 text-neutral-500"}`, children: m.consent ? "Accepte d'\xEAtre affich\xE9" : "Ne souhaite pas \xEAtre affich\xE9" })
                 ] }) : /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("span", { className: "px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-sy-e6ece5 text-sy-1e3222 flex items-center gap-0.5", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(MessageSquare, { className: "w-2.5 h-2.5" }),
                   " ",
@@ -15395,7 +15637,8 @@ ${m.message}
                   /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Lock, { className: "w-2.5 h-2.5" }),
                   " Lien voyageurs"
                 ] }),
-                m.status === "done" && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { className: "px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-100 text-emerald-800", children: "Trait\xE9" })
+                m.status === "done" && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { className: "px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-100 text-emerald-800", children: "Trait\xE9" }),
+                m.status === "published" && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { className: "px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-100 text-emerald-800", children: "Affich\xE9 dans le livre d'or" })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { className: "text-xs font-bold text-neutral-900 mt-1", children: m.name || "Sans nom" }),
               /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { className: "text-[10px] text-neutral-500", children: formatDate(m.at) })
@@ -15409,7 +15652,20 @@ ${m.message}
                 /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Phone, { className: "w-3.5 h-3.5" }),
                 " Appeler"
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
+              m.kind === "guestbook" && m.consent && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setStatus(m, m.status === "published" ? "done" : "published"),
+                  disabled: busy === m.id,
+                  className: `flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border cursor-pointer disabled:opacity-50 ${m.status === "published" ? "text-neutral-700 bg-white border-neutral-200 hover:bg-neutral-100" : "text-white bg-sy-325032 border-sy-325032 hover:bg-sy-253d25"}`,
+                  children: [
+                    busy === m.id ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin" }) : m.status === "published" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(EyeOff, { className: "w-3.5 h-3.5" }) : /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(Eye, { className: "w-3.5 h-3.5" }),
+                    m.status === "published" ? "Retirer du livre d'or" : "Afficher dans le livre d'or"
+                  ]
+                }
+              ),
+              m.status !== "published" && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
                 "button",
                 {
                   type: "button",
@@ -15779,7 +16035,7 @@ ${m.message}
         logoUrl,
         editing: true,
         onSelectSection: openSection,
-        extraNav: formsNav(previewForms),
+        extraNav: formsNav(previewForms, [], true),
         children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(BookForms, { forms: previewForms, color: bookColor, establishmentName: settings.establishment.name, onSend: void 0 })
       }
     );
@@ -16254,8 +16510,8 @@ ${m.message}
           photos: photos2,
           audience: data.audience,
           logoUrl: logo || null,
-          extraNav: formsNav(data.forms),
-          children: /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(BookForms, { forms: data.forms, color, establishmentName: data.catalog.establishment.name, onSend })
+          extraNav: formsNav(data.forms, data.guestbook),
+          children: /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(BookForms, { forms: data.forms, color, establishmentName: data.catalog.establishment.name, onSend, guestbook: data.guestbook })
         }
       )
     ] }) });
@@ -30746,6 +31002,7 @@ lucide-react/dist/esm/icons/award.js:
 lucide-react/dist/esm/icons/baby.js:
 lucide-react/dist/esm/icons/bed-double.js:
 lucide-react/dist/esm/icons/blocks.js:
+lucide-react/dist/esm/icons/book-heart.js:
 lucide-react/dist/esm/icons/book-open.js:
 lucide-react/dist/esm/icons/book-x.js:
 lucide-react/dist/esm/icons/building-2.js:
@@ -30776,6 +31033,7 @@ lucide-react/dist/esm/icons/dollar-sign.js:
 lucide-react/dist/esm/icons/download.js:
 lucide-react/dist/esm/icons/euro.js:
 lucide-react/dist/esm/icons/external-link.js:
+lucide-react/dist/esm/icons/eye-off.js:
 lucide-react/dist/esm/icons/eye.js:
 lucide-react/dist/esm/icons/file-code.js:
 lucide-react/dist/esm/icons/file-spreadsheet.js:
@@ -30812,6 +31070,7 @@ lucide-react/dist/esm/icons/play.js:
 lucide-react/dist/esm/icons/plus.js:
 lucide-react/dist/esm/icons/power.js:
 lucide-react/dist/esm/icons/printer.js:
+lucide-react/dist/esm/icons/quote.js:
 lucide-react/dist/esm/icons/receipt.js:
 lucide-react/dist/esm/icons/refresh-cw.js:
 lucide-react/dist/esm/icons/rotate-ccw.js:
