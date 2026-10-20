@@ -21473,13 +21473,15 @@ ${body}
   var TIME = ["none", "month", "quarter", "year"];
   var WITH_ROOM = [...TIME, "room"];
   var RES_DIMS = [...WITH_ROOM, "source", "origin", "payment"];
+  var MEAL_DIMS = [...TIME, "room", "moment"];
   var G_RES = "S\xE9jours et r\xE9servations";
   var G_EXP = "D\xE9penses";
   var G_ASSET = "Amortissements";
   var G_REV = "Avis clients";
   var G_INV = "Factures";
+  var G_MEAL = "Commandes de repas (livret)";
   var G_MIX = "R\xE9sultats combin\xE9s";
-  var GROUP_ORDER = [G_RES, G_EXP, G_ASSET, G_REV, G_INV, G_MIX];
+  var GROUP_ORDER = [G_RES, G_EXP, G_ASSET, G_REV, G_INV, G_MEAL, G_MIX];
   var res = (id, label, field, unit = "money", hint) => ({
     id,
     label,
@@ -21522,6 +21524,13 @@ ${body}
     { id: "rev_avg", label: "Note moyenne des voyageurs", group: G_REV, unit: "rating", dims: [...WITH_ROOM, "platform"], kind: "ratio", ds: "rev", num: "sum", den: "count", hint: "Avis saisis et notes des fiches de r\xE9servation" },
     { id: "inv_count", label: "Factures \xE9dit\xE9es", group: G_INV, unit: "count", dims: [...TIME, "payment"], kind: "sum", ds: "inv", field: "count" },
     { id: "inv_total", label: "Montant des factures", group: G_INV, unit: "money", dims: [...TIME, "payment"], kind: "sum", ds: "inv", field: "total" },
+    { id: "meal_orders", label: "Repas command\xE9s (commandes)", group: G_MEAL, unit: "count", dims: MEAL_DIMS, kind: "sum", ds: "meal", field: "count", hint: "Une commande = un repas d'un jour ; hors commandes annul\xE9es ou refus\xE9es. Jour de service." },
+    { id: "meal_covers", label: "Couverts command\xE9s (adultes + enfants)", group: G_MEAL, unit: "count", dims: MEAL_DIMS, kind: "sum", ds: "meal", field: "covers", hint: "Hors commandes annul\xE9es ou refus\xE9es" },
+    { id: "meal_total", label: "Montant indicatif des commandes", group: G_MEAL, unit: "money", dims: MEAL_DIMS, kind: "sum", ds: "meal", field: "total", hint: "Total calcul\xE9 \xE0 la commande, hors commandes annul\xE9es ou refus\xE9es" },
+    { id: "meal_avg_total", label: "Montant indicatif moyen par commande", group: G_MEAL, unit: "money", dims: MEAL_DIMS, kind: "ratio", ds: "meal", num: "total", den: "count" },
+    { id: "meal_all", label: "Commandes re\xE7ues (tous statuts)", group: G_MEAL, unit: "count", dims: [...MEAL_DIMS, "orderStatus"], kind: "sum", ds: "meal", field: "all", hint: "\xC0 regrouper \xAB par statut de commande \xBB pour voir les annulations et refus" },
+    { id: "meal_items", label: "Produits command\xE9s (quantit\xE9s)", group: G_MEAL, unit: "count", dims: [...TIME, "moment", "product"], kind: "sum", ds: "mealItem", field: "qty", hint: "Plats et boissons command\xE9s, enfants compris" },
+    { id: "meal_items_amount", label: "Montant indicatif par produit", group: G_MEAL, unit: "money", dims: [...TIME, "moment", "product"], kind: "sum", ds: "mealItem", field: "amount" },
     { id: "mix_net", label: "Marge des s\xE9jours \u2212 d\xE9penses saisies", group: G_MIX, unit: "money", dims: WITH_ROOM, kind: "combo", plus: ["res_margin"], minus: ["exp_total"], hint: "Estimation de pilotage, pas un b\xE9n\xE9fice comptable" },
     { id: "mix_net_depr", label: "Marge des s\xE9jours \u2212 d\xE9penses \u2212 amortissements", group: G_MIX, unit: "money", dims: WITH_ROOM, kind: "combo", plus: ["res_margin"], minus: ["exp_total", "asset_depr"] },
     { id: "mix_cash_gap", label: "Chiffre d'affaires \u2212 d\xE9penses saisies", group: G_MIX, unit: "money", dims: WITH_ROOM, kind: "combo", plus: ["res_revenue"], minus: ["exp_total"] }
@@ -21539,11 +21548,14 @@ ${body}
     { id: "category", label: "Par cat\xE9gorie de d\xE9pense" },
     { id: "costKind", label: "Par nature (fixe / variable)" },
     { id: "assetCategory", label: "Par cat\xE9gorie de bien" },
-    { id: "platform", label: "Par source des avis" }
+    { id: "platform", label: "Par source des avis" },
+    { id: "moment", label: "Par repas (petit-d\xE9jeuner, d\xEEner\u2026)" },
+    { id: "orderStatus", label: "Par statut de commande" },
+    { id: "product", label: "Par produit command\xE9" }
   ];
   var isTimeDim = (d) => d === "month" || d === "quarter" || d === "year";
-  function makeContext(reservations, expenses2, assets2, externalReviews, settings) {
-    return { reservations, expenses: expenses2, assets: assets2, externalReviews, settings, registry: readInvoiceRegistry(), capacityCache: /* @__PURE__ */ new Map() };
+  function makeContext(reservations, expenses2, assets2, externalReviews, settings, mealOrders = []) {
+    return { reservations, expenses: expenses2, assets: assets2, externalReviews, mealOrders, settings, registry: readInvoiceRegistry(), capacityCache: /* @__PURE__ */ new Map() };
   }
   var DAY = 864e5;
   var isoAdd = (iso, days) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
@@ -21643,6 +21655,27 @@ ${body}
       const total = inv.totalAmount !== void 0 ? inv.totalAmount : r.totalAmount || 0;
       const paid = inv.paymentState === "acquittee" || inv.paymentState === void 0 && r.paymentStatus === "paid";
       rows.push({ ds: "inv", month, payment: paid ? "invPaid" : "invUnpaid", v: { count: 1, total } });
+    });
+    const roomOfReservation = new Map(ctx.reservations.map((r) => [String(r.id), r.roomId]));
+    ctx.mealOrders.forEach((o) => {
+      const month = (o.date || "").slice(0, 7);
+      if (!months.has(month)) return;
+      const valid = o.status !== "cancelled" && o.status !== "refused";
+      const room = roomOfReservation.get(o.reservationId) || "";
+      const moment2 = o.momentName || o.momentId || "";
+      rows.push({
+        ds: "meal",
+        month,
+        room,
+        moment: moment2,
+        orderStatus: o.status,
+        v: { all: 1, count: valid ? 1 : 0, covers: valid ? (o.adults || 0) + (o.children || 0) : 0, total: valid ? o.total || 0 : 0 }
+      });
+      if (valid) {
+        o.lines.forEach((l) => {
+          rows.push({ ds: "mealItem", month, room, moment: moment2, product: l.name || l.itemId, orderStatus: o.status, v: { qty: (l.qty || 0) + (l.childQty || 0), amount: (l.qty || 0) * (l.unitPrice || 0) + (l.childQty || 0) * (l.childUnitPrice || 0) } });
+        });
+      }
     });
     return rows;
   }
@@ -21849,6 +21882,12 @@ ${body}
         return row.assetCategory ?? "";
       case "platform":
         return row.platform ?? "";
+      case "moment":
+        return row.moment ?? "";
+      case "orderStatus":
+        return row.orderStatus ?? "";
+      case "product":
+        return row.product ?? "";
     }
   }
   function aggregate(rows, m, dim) {
@@ -21917,6 +21956,12 @@ ${body}
         return { paid: "Pay\xE9", deposit: "Acompte vers\xE9", pending: "En attente", invPaid: "Acquitt\xE9e", invUnpaid: "\xC0 r\xE9gler" }[key] || key || "Non renseign\xE9";
       case "category":
         return prof.categories.find((c) => c.id === key)?.name || "Cat\xE9gorie supprim\xE9e";
+      case "moment":
+        return key || "Non renseign\xE9";
+      case "product":
+        return key || "Non renseign\xE9";
+      case "orderStatus":
+        return ORDER_STATUS_LABELS[key] || key;
       case "costKind":
         return key === "fixed" ? "Fixe" : key === "variable" ? "Variable" : key;
       case "assetCategory":
@@ -22009,6 +22054,8 @@ ${body}
     w("Chiffre d'affaires par plateforme", "donut", ["res_revenue"], "source", "view"),
     w("D\xE9penses par cat\xE9gorie", "donut", ["exp_total"], "category", "view"),
     w("R\xE9sultats par h\xE9bergement", "table", ["res_revenue", "res_nights", "res_occupancy", "res_revpar"], "room", "view", 2),
+    w("Repas command\xE9s par repas", "bar", ["meal_orders", "meal_covers"], "moment", "thisYear"),
+    w("Produits les plus command\xE9s", "table", ["meal_items", "meal_items_amount"], "product", "last12"),
     w("Notes des voyageurs par source", "bar", ["rev_avg"], "platform", "last12")
   ];
   function allowedDims(kind, measureIds) {
@@ -22024,7 +22071,9 @@ ${body}
     const assets2 = useAssets();
     const [draft, setDraft] = (0, import_react38.useState)(null);
     const [isNew, setIsNew] = (0, import_react38.useState)(false);
-    const ctx = (0, import_react38.useMemo)(() => makeContext(reservations, expenses2, assets2, externalReviews, settings), [reservations, expenses2, assets2, externalReviews, settings]);
+    const mealsOn = isModuleEnabled("meals", settings);
+    const { orders: mealOrders, at: ordersAt } = useMealOrders(mealsOn);
+    const ctx = (0, import_react38.useMemo)(() => makeContext(reservations, expenses2, assets2, externalReviews, settings, mealOrders), [reservations, expenses2, assets2, externalReviews, settings, mealOrders]);
     const cache2 = (0, import_react38.useMemo)(() => /* @__PURE__ */ new Map(), [ctx]);
     const run = (widget) => {
       try {
@@ -22086,10 +22135,25 @@ ${body}
         /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("b", { children: "graphiques" }),
         " et ",
         /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("b", { children: "tableaux" }),
-        " \xE0 partir de toutes les donn\xE9es de l'application (s\xE9jours, d\xE9penses, amortissements, avis, factures). Les m\xEAmes r\xE8gles de calcul que la synth\xE8se s'appliquent ; une donn\xE9e sans base de calcul s'affiche \xAB \u2014 \xBB. Les montants \xAB estim\xE9s \xBB restent des estimations de pilotage."
+        " \xE0 partir de toutes les donn\xE9es de l'application (s\xE9jours, d\xE9penses, amortissements, avis, factures). Les m\xEAmes r\xE8gles de calcul que la synth\xE8se s'appliquent ; une donn\xE9e sans base de calcul s'affiche \xAB \u2014 \xBB. Les montants \xAB estim\xE9s \xBB restent des estimations de pilotage.",
+        mealsOn ? /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("span", { className: "block mt-1", children: [
+          "Commandes de repas : ",
+          mealOrders.length,
+          " lue",
+          mealOrders.length > 1 ? "s" : "",
+          " dans le Google Sheet",
+          ordersAt ? ` (le ${new Date(ordersAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })})` : " (pas encore lues)",
+          ".",
+          " ",
+          /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", onClick: () => fetchMealOrders().then(() => onToast("Commandes actualis\xE9es.")).catch((e) => onToast(e.message)), className: "underline font-semibold cursor-pointer", children: "Actualiser" })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { className: "block mt-1", children: "Les donn\xE9es de commandes de repas demandent le module Repas (Param\xE9trage, rubrique Modules)." })
       ] }),
       draft && /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "bg-white border border-sy-cad7cd rounded-2xl p-4 space-y-3 shadow-xs", children: [
         /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("h3", { className: "font-serif font-bold text-base text-neutral-900", children: isNew ? "Nouvelle carte ou graphique" : "Modifier" }),
+        isNew && /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { className: "block text-[11px] font-semibold text-neutral-700 mb-1", children: "Partir d'un mod\xE8le (facultatif)" }),
+          /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("div", { className: "flex flex-wrap gap-1.5", children: TEMPLATES.map((t) => /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", onClick: () => setDraft({ id: draft.id, ...t }), className: "px-2.5 py-1.5 text-[11px] font-semibold text-sy-325032 border border-sy-cad7cd hover:bg-sy-f4f7f4 rounded-lg cursor-pointer", children: t.title }, t.title)) })
+        ] }),
         /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(Field, { label: "Titre", children: /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(TextInput, { value: draft.title, onChange: (title) => setDraft({ ...draft, title }), placeholder: "Ex. Chiffre d'affaires par mois" }) }),
         /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { className: "block text-[11px] font-semibold text-neutral-700 mb-1", children: "Type d'affichage" }),
