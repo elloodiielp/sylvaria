@@ -1887,13 +1887,14 @@ var DomaineAppBundle = (() => {
     return new Date(year, month + 1, 0).getDate();
   }
   function checkDateOverlap(reservations, roomId, checkIn, checkOut, excludeId) {
-    const newStart = new Date(checkIn).getTime();
-    const newEnd = new Date(checkOut).getTime();
+    const day = (d) => (d || "").slice(0, 10);
+    const newStart = day(checkIn);
+    const newEnd = day(checkOut);
     for (const res of reservations) {
       if (res.id === excludeId) continue;
       if (res.roomId !== roomId) continue;
-      const resStart = parseLocalDate(res.checkIn).getTime();
-      const resEnd = parseLocalDate(res.checkOut).getTime();
+      const resStart = day(res.checkIn);
+      const resEnd = day(res.checkOut);
       if (newStart < resEnd && newEnd > resStart) {
         return res;
       }
