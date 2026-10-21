@@ -1892,6 +1892,59 @@ var DomaineAppBundle = (() => {
     logEvent("info", `Sauvegarde compl\xE8te t\xE9l\xE9charg\xE9e (${Object.keys(data).length} jeux de donn\xE9es).`);
   }
 
+  // src/core/storage.ts
+  var DISPOSABLE_KEYS = [
+    "domaine_sylvaria_reservations_avant_import_v1",
+    "domaine_sylvaria_backup_avant_migration_001",
+    "domaine_sylvaria_backup_avant_migration_002",
+    "domaine_sylvaria_meal_orders_cache_v1",
+    "domaine_sylvaria_journal_v1"
+  ];
+  var STORAGE_FULL_EVENT = "domaine_sylvaria_storage_full";
+  function storageUsage() {
+    const items = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        const size = (key.length + (localStorage.getItem(key) || "").length) * 2;
+        items.push({ key, kb: Math.round(size / 1024) });
+      }
+    } catch {
+    }
+    items.sort((a, b) => b.kb - a.kb);
+    return { totalKb: items.reduce((n, x) => n + x.kb, 0), biggest: items.slice(0, 5) };
+  }
+  function safeSetItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch {
+    }
+    for (const spare of DISPOSABLE_KEYS) {
+      if (spare === key) continue;
+      try {
+        if (localStorage.getItem(spare) === null) continue;
+        localStorage.removeItem(spare);
+        localStorage.setItem(key, value);
+        logEvent("info", `Stockage plein : copie de s\xE9curit\xE9 \xAB ${spare} \xBB supprim\xE9e pour pouvoir enregistrer.`);
+        return true;
+      } catch {
+      }
+    }
+    const { totalKb, biggest } = storageUsage();
+    const detail = biggest.map((b) => `${b.key} (${b.kb} Ko)`).join(", ");
+    logEvent("error", `Stockage de l'appareil plein (${totalKb} Ko) : \xAB ${key} \xBB n'a PAS \xE9t\xE9 enregistr\xE9. Plus gros : ${detail}`);
+    try {
+      window.dispatchEvent(new CustomEvent(STORAGE_FULL_EVENT, { detail: { key, totalKb } }));
+    } catch {
+    }
+    return false;
+  }
+  function setItemOrThrow(key, value) {
+    if (!safeSetItem(key, value)) throw new Error("quota : stockage de l'appareil plein");
+  }
+
   // src/core/settings/settingsStore.ts
   var SETTINGS_STORAGE_KEY = "domaine_sylvaria_settings_v1";
   function mergeWithDefaults(stored) {
@@ -1973,11 +2026,7 @@ var DomaineAppBundle = (() => {
       notify();
       return;
     }
-    try {
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
-    } catch (err) {
-      logEvent("error", `Param\xE9trage non enregistr\xE9 : ${String(err)}`);
-    }
+    safeSetItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
     notify();
   }
   function getSettings() {
@@ -2584,10 +2633,7 @@ var DomaineAppBundle = (() => {
     return DEFAULT_BREAKFAST_INGREDIENTS;
   }
   function saveStoredBreakfastIngredients(items) {
-    try {
-      localStorage.setItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(items));
-    } catch {
-    }
+    safeSetItem(INGREDIENTS_STORAGE_KEY, JSON.stringify(items));
   }
   var MEAL_ITEMS_STORAGE_KEY = "domaine_sylvaria_meals_items_v1";
   var DEFAULT_MEAL_ITEMS = [
@@ -2635,10 +2681,7 @@ var DomaineAppBundle = (() => {
     return DEFAULT_MEAL_ITEMS;
   }
   function saveStoredMealItems(items) {
-    try {
-      localStorage.setItem(MEAL_ITEMS_STORAGE_KEY, JSON.stringify(items));
-    } catch {
-    }
+    safeSetItem(MEAL_ITEMS_STORAGE_KEY, JSON.stringify(items));
   }
   function calculateIngredientCost(item2) {
     if (item2.unit === "u") {
@@ -3365,11 +3408,7 @@ var DomaineAppBundle = (() => {
     }
   }
   function saveReservations(reservations) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
-    } catch (err) {
-      console.error("Erreur de sauvegarde locale :", err);
-    }
+    safeSetItem(STORAGE_KEY, JSON.stringify(reservations));
   }
   var ICAL_PENDING_LABEL = "\xC0 compl\xE9ter";
   var ICAL_DISMISSED_STORAGE_KEY = "domaine_sylvaria_ical_dismissed_v1";
@@ -3536,11 +3575,7 @@ var DomaineAppBundle = (() => {
     }
   }
   function saveExternalReviews(reviews) {
-    try {
-      localStorage.setItem(EXTERNAL_REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
-    } catch (err) {
-      console.error("Erreur sauvegarde avis externes :", err);
-    }
+    safeSetItem(EXTERNAL_REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
   }
   function calculateReviewStats(reservations, externalReviews) {
     const unifiedReviews = [];
@@ -4332,10 +4367,7 @@ var DomaineAppBundle = (() => {
   }
   function persist(next) {
     tasks = next;
-    try {
-      localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-    }
+    safeSetItem(TASKS_STORAGE_KEY, JSON.stringify(next));
     notify3();
     if (syncTimer) clearTimeout(syncTimer);
     syncTimer = setTimeout(() => {
@@ -4421,7 +4453,7 @@ var DomaineAppBundle = (() => {
   } catch {
   }
   function persistPhotos(next) {
-    localStorage.setItem(PHOTOS_STORAGE_KEY, JSON.stringify(next));
+    setItemOrThrow(PHOTOS_STORAGE_KEY, JSON.stringify(next));
     photos = next;
     notify4();
   }
@@ -4550,7 +4582,7 @@ var DomaineAppBundle = (() => {
   } catch {
   }
   function persist2(next) {
-    localStorage.setItem(EXPENSES_STORAGE_KEY, JSON.stringify(next));
+    setItemOrThrow(EXPENSES_STORAGE_KEY, JSON.stringify(next));
     expenses = next;
     notify5();
     triggerSync();
@@ -4603,7 +4635,7 @@ var DomaineAppBundle = (() => {
   } catch {
   }
   function persistAssets(next) {
-    localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(next));
+    setItemOrThrow(ASSETS_STORAGE_KEY, JSON.stringify(next));
     assets = next;
     notifyAssets();
     triggerSync();
@@ -4713,7 +4745,7 @@ var DomaineAppBundle = (() => {
   } catch {
   }
   function persist3(next) {
-    localStorage.setItem(META_STORAGE_KEY, JSON.stringify(next));
+    setItemOrThrow(META_STORAGE_KEY, JSON.stringify(next));
     metas = next;
     notify6();
     triggerSync2();
@@ -4836,7 +4868,7 @@ var DomaineAppBundle = (() => {
   } catch {
   }
   function persist4(next) {
-    localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(next));
+    setItemOrThrow(DOCS_STORAGE_KEY, JSON.stringify(next));
     docs = next;
     notify7();
     triggerSync3();
@@ -22628,12 +22660,22 @@ ${body}
   function expensesInPeriod(expenses2, period) {
     return Object.values(expenses2).filter((e) => e && e.date >= period.from && e.date <= period.to).sort((a, b) => b.date.localeCompare(a.date));
   }
+  function usageShare(asset) {
+    const days = Number(asset.usageDays);
+    return days > 0 ? Math.min(365, Math.max(1, days)) / 365 : 1;
+  }
+  function assetLifeDays(asset) {
+    return Math.round(asset.years * 365.25 / usageShare(asset));
+  }
+  function assetPerYear(asset) {
+    return asset.years > 0 ? Math.max(0, asset.amount - asset.residual) / asset.years * usageShare(asset) : 0;
+  }
   function depreciationInPeriod(asset, from, to) {
     const base = Math.max(0, (asset.amount || 0) - (asset.residual || 0));
     if (!(asset.years > 0) || !asset.purchaseDate || base <= 0) return 0;
     const day = 864e5;
     const start = Date.parse(`${asset.purchaseDate}T00:00:00Z`);
-    const totalDays = Math.round(asset.years * 365.25);
+    const totalDays = assetLifeDays(asset);
     if (isNaN(start)) return 0;
     const end = start + totalDays * day;
     const overlap = Math.max(0, Math.min(end, Date.parse(`${to}T00:00:00Z`) + day) - Math.max(start, Date.parse(`${from}T00:00:00Z`))) / day;
@@ -23736,10 +23778,10 @@ ${body}
     const rows = list2.map((a) => ({
       asset: a,
       inPeriod: depreciationInPeriod(a, period.from, period.to),
-      perYear: a.years > 0 ? Math.max(0, a.amount - a.residual) / a.years : 0,
+      perYear: assetPerYear(a),
       endDate: (() => {
         const d = /* @__PURE__ */ new Date(`${a.purchaseDate}T00:00:00Z`);
-        d.setUTCDate(d.getUTCDate() + Math.round(a.years * 365.25));
+        d.setUTCDate(d.getUTCDate() + assetLifeDays(a));
         return d.toISOString().slice(0, 10);
       })()
     }));
@@ -23785,7 +23827,9 @@ ${body}
       /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(InfoNote, { children: [
         "Un bien durable (lit, lave-linge, pompe de piscine, travaux\u2026) se r\xE9partit sur plusieurs ann\xE9es : ",
         /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("b", { children: "amortissement lin\xE9aire" }),
-        " = (prix d'achat \u2212 valeur r\xE9siduelle) \xF7 dur\xE9e, compt\xE9 au jour pr\xE8s \xE0 partir de la date d'achat. Choisissez le ",
+        " = (prix d'achat \u2212 valeur r\xE9siduelle) \xF7 dur\xE9e, compt\xE9 au jour pr\xE8s \xE0 partir de la date d'achat, et ",
+        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("b", { children: "ramen\xE9 au nombre de jours d'utilisation par an" }),
+        " si vous en indiquez moins que 365. Choisissez le ",
         /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("b", { children: "poste de co\xFBt" }),
         " qu'il alimente : avec vos d\xE9penses, il sert \xE0 calculer le co\xFBt par nuit\xE9e (synth\xE8se). Ce calcul est une aide de pilotage, pas une comptabilit\xE9."
       ] }),
@@ -23817,11 +23861,12 @@ ${body}
             }
           ) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-3", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { className: "grid grid-cols-2 sm:grid-cols-5 gap-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Prix d'achat (\u20AC)", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(NumberInput, { value: draft.amount, onChange: (v) => set({ amount: v || 0 }), suffix: "\u20AC" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Valeur r\xE9siduelle (\u20AC)", hint: "Valeur estim\xE9e en fin de vie (0 par d\xE9faut)", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(NumberInput, { value: draft.residual, onChange: (v) => set({ residual: v || 0 }), suffix: "\u20AC" }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Dur\xE9e d'amortissement", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(NumberInput, { value: draft.years, onChange: (v) => set({ years: v || 0 }), suffix: "ans" }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Par an", hint: "Dotation annuelle", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("div", { className: "py-2 px-2.5 text-xs font-mono font-semibold bg-neutral-100 rounded-lg", children: formatCurrency(draft.years > 0 ? Math.max(0, draft.amount - draft.residual) / draft.years : 0) }) })
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Dur\xE9e d'amortissement", hint: "Dur\xE9e de vie si le bien servait tous les jours", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(NumberInput, { value: draft.years, onChange: (v) => set({ years: v || 0 }), suffix: "ans" }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Utilisation par an", hint: "Jours d'utilisation en moyenne (365 = tous les jours). Si l'\xE9tablissement n'est pas plein toute l'ann\xE9e, comptez moins : ex. 220 pour \u2248 60 % d'occupation. Le bien s'use moins vite, l'amortissement annuel baisse d'autant.", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(NumberInput, { value: draft.usageDays ?? 365, onChange: (v) => set({ usageDays: Math.min(365, Math.max(1, v || 365)) }), suffix: "jours" }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Par an", hint: "Dotation annuelle", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("div", { className: "py-2 px-2.5 text-xs font-mono font-semibold bg-neutral-100 rounded-lg", children: formatCurrency(assetPerYear(draft)) }) })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Field, { label: "Poste de co\xFBt aliment\xE9", hint: "Case du tableau des co\xFBts de la r\xE9servation (co\xFBt nuit, piscine\u2026) dont il augmente le co\xFBt par nuit\xE9e", children: /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Select, { value: draft.bucket, onChange: (bucket) => set({ bucket }), options: buckets }) }),
@@ -23865,6 +23910,7 @@ ${body}
                 a.years,
                 " an",
                 a.years > 1 ? "s" : "",
+                a.usageDays && a.usageDays < 365 ? ` \xE0 ${a.usageDays} jours d'usage par an` : "",
                 " (",
                 formatCurrency(perYear),
                 "/an)",
@@ -31768,6 +31814,16 @@ Cliquer pour modifier le tarif` : void 0,
     const roomFilterRows = planningRows(useSettings(), true).filter((row) => row.visible || reservations.some((r) => r.roomId === row.id));
     const [filterOrigin, setFilterOrigin] = (0, import_react58.useState)("all");
     const [filterMonth, setFilterMonth] = (0, import_react58.useState)("all");
+    const [filterYear, setFilterYear] = (0, import_react58.useState)(selectedYear);
+    (0, import_react58.useEffect)(() => setFilterYear(selectedYear), [selectedYear]);
+    const yearOptions = (0, import_react58.useMemo)(() => {
+      const years = /* @__PURE__ */ new Set([selectedYear]);
+      reservations.forEach((r) => {
+        const y = Number((r.checkIn || "").slice(0, 4));
+        if (y > 2e3) years.add(y);
+      });
+      return Array.from(years).sort((a, b) => a - b);
+    }, [reservations, selectedYear]);
     const [searchTerm, setSearchTerm] = (0, import_react58.useState)("");
     const [sortField, setSortField] = (0, import_react58.useState)("date");
     const [sortAsc, setSortAsc] = (0, import_react58.useState)(false);
@@ -31777,12 +31833,8 @@ Cliquer pour modifier le tarif` : void 0,
         if (filterRoom !== "all" && r.roomId !== filterRoom) return false;
         const fin = getReservationFinancials(r);
         if (filterOrigin !== "all" && fin.originType !== filterOrigin) return false;
-        if (filterMonth !== "all") {
-          const checkInDate = new Date(r.checkIn);
-          if (checkInDate.getFullYear() === selectedYear && checkInDate.getMonth() !== filterMonth) {
-            return false;
-          }
-        }
+        if (filterYear !== "all" && Number((r.checkIn || "").slice(0, 4)) !== filterYear) return false;
+        if (filterMonth !== "all" && Number((r.checkIn || "").slice(5, 7)) - 1 !== filterMonth) return false;
         if (searchTerm.trim()) {
           const term = searchTerm.toLowerCase();
           const matchName = r.guestName.toLowerCase().includes(term);
@@ -31806,7 +31858,7 @@ Cliquer pour modifier le tarif` : void 0,
         }
         return sortAsc ? diff : -diff;
       });
-    }, [reservations, filterRoom, filterOrigin, filterMonth, searchTerm, sortField, sortAsc, selectedYear]);
+    }, [reservations, filterRoom, filterOrigin, filterMonth, filterYear, searchTerm, sortField, sortAsc]);
     const realReservationsCount = (0, import_react58.useMemo)(() => {
       return filteredReservations.filter((r) => !isReservationBlocked(r)).length;
     }, [filteredReservations]);
@@ -31884,7 +31936,7 @@ Cliquer pour modifier le tarif` : void 0,
     const globalMarginPercent = totals.revenues > 0 ? Math.round(totals.globalMargin / totals.revenues * 100) : 0;
     const directMarginPercent = totals.revenues > 0 ? Math.round(totals.directMargin / totals.revenues * 100) : 0;
     const handleExportCSV = () => {
-      exportSynthesisToCSV(filteredReservations, `tableau_synthese_domaine_sylvaria_${selectedYear}`);
+      exportSynthesisToCSV(filteredReservations, `tableau_synthese_domaine_sylvaria_${filterYear === "all" ? "toutes_annees" : filterYear}`);
     };
     const handlePrint = () => {
       window.print();
@@ -32099,11 +32151,20 @@ Cliquer pour modifier le tarif` : void 0,
                 onChange: (e) => setFilterMonth(e.target.value === "all" ? "all" : Number(e.target.value)),
                 className: "py-1.5 px-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs focus:outline-hidden cursor-pointer",
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("option", { value: "all", children: [
-                    "Toute l'ann\xE9e ",
-                    selectedYear
-                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("option", { value: "all", children: "Tous les mois" }),
                   MONTH_NAMES_FR.map((name, i) => /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("option", { value: i, children: name }, i))
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(
+              "select",
+              {
+                value: filterYear,
+                onChange: (e) => setFilterYear(e.target.value === "all" ? "all" : Number(e.target.value)),
+                className: "py-1.5 px-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs focus:outline-hidden cursor-pointer",
+                children: [
+                  yearOptions.map((y) => /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("option", { value: y, children: y }, y)),
+                  /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("option", { value: "all", children: "Toutes les ann\xE9es" })
                 ]
               }
             )
@@ -41664,6 +41725,24 @@ ${establishment}`;
       };
       window.addEventListener("domaine_sylvaria_connector_locked", onLocked);
       return () => window.removeEventListener("domaine_sylvaria_connector_locked", onLocked);
+    }, []);
+    (0, import_react78.useEffect)(() => {
+      let lastAlert = 0;
+      const onFull = () => {
+        if (Date.now() - lastAlert < 6e4) return;
+        lastAlert = Date.now();
+        const { totalKb, biggest } = storageUsage();
+        window.alert(
+          `ATTENTION : la m\xE9moire de cet appareil est pleine, votre derni\xE8re modification n'a PAS \xE9t\xE9 enregistr\xE9e.
+
+M\xE9moire utilis\xE9e : ${Math.round(totalKb / 1024 * 10) / 10} Mo.
+Plus gros \xE9l\xE9ments : ${biggest.map((b) => `${b.key.replace("domaine_sylvaria_", "")} (${Math.round(b.kb / 1024 * 10) / 10} Mo)`).join(", ")}.
+
+Que faire : r\xE9duisez ou supprimez des photos (livret, tickets de d\xE9penses), ou enregistrez dans Google Sheets puis rechargez.`
+        );
+      };
+      window.addEventListener(STORAGE_FULL_EVENT, onFull);
+      return () => window.removeEventListener(STORAGE_FULL_EVENT, onFull);
     }, []);
     (0, import_react78.useEffect)(() => {
       const onOpenTab = (e) => {
