@@ -13287,7 +13287,7 @@ function sendDocReminders_(test) {
               {
                 value: selectedMonth,
                 onChange: (e) => onMonthChange(Number(e.target.value)),
-                className: "header-date-select bg-transparent text-neutral-900 font-serif font-bold text-[11px] sm:text-xs focus:outline-hidden cursor-pointer max-w-[88px] sm:max-w-none truncate px-0",
+                className: "header-date-select bg-transparent text-neutral-900 font-serif font-bold text-[11px] sm:text-xs focus:outline-hidden cursor-pointer max-w-[80px] sm:max-w-none truncate px-0",
                 children: MONTH_NAMES_FR.map((m, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("option", { value: idx, children: m }, m))
               }
             ),
@@ -13310,7 +13310,13 @@ function sendDocReminders_(test) {
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "flex items-center gap-1 px-2 py-1.5 sm:px-2.5 bg-emerald-100/90 border border-emerald-300 text-emerald-900 rounded-xl font-mono font-bold text-[10px] sm:text-xs shadow-2xs shrink-0", title: "Revenu total du mois s\xE9lectionn\xE9", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: formatCurrency(currentMonthRevenue) }) })
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-center gap-1 px-2 py-1.5 sm:px-2.5 bg-emerald-100/90 border border-emerald-300 text-emerald-900 rounded-xl font-mono font-bold text-[10px] sm:text-xs shadow-2xs shrink-0", title: "Revenu total du mois s\xE9lectionn\xE9", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "sm:hidden", "data-revenue-mobile": true, children: [
+              Math.round(currentMonthRevenue),
+              " \u20AC"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "hidden sm:inline", children: formatCurrency(currentMonthRevenue) })
+          ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "shrink-0 flex items-center gap-1.5", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
