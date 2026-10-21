@@ -1025,7 +1025,7 @@ var DomaineAppBundle = (() => {
       alertMaxRating: 3,
       themes: DEFAULT_THEMES.map((t) => ({ ...t, keywords: [...t.keywords] })),
       templates: DEFAULT_TEMPLATES.map((t) => ({ ...t })),
-      requests: { enabled: true, delayDays: 2, windowDays: 30, template: DEFAULT_REQUEST_TEXT, reviewUrl: "" },
+      requests: { enabled: true, delayDays: 2, windowDays: 30, template: DEFAULT_REQUEST_TEXT, reviewUrl: "", auto: false, autoHour: 10, autoSince: "" },
       summaryPeriod: "year",
       exportSeparator: ";",
       savedAt: ""
@@ -1170,7 +1170,7 @@ var DomaineAppBundle = (() => {
       const sendFrom = isoShift(r.checkOut, rv.requests.delayDays);
       const sendUntil = isoShift(sendFrom, rv.requests.windowDays);
       const sent = requestOf(metas2, r.id);
-      const reviewed = !!(r.guestRating || (r.guestComment || "").trim());
+      const reviewed = typeof r.guestRating === "number" && r.guestRating >= 1 && r.guestRating <= 5 || !!(r.guestComment || "").trim() && !/^[\d\s.,€$-]+$/.test((r.guestComment || "").trim());
       let state;
       if (reviewed) state = "reviewed";
       else if (sent) state = "sent";
@@ -3327,7 +3327,16 @@ var DomaineAppBundle = (() => {
   }
   function calculateReviewStats(reservations, externalReviews) {
     const unifiedReviews = [];
-    for (const r of reservations) {
+    const validRating = (n) => typeof n === "number" && n >= 1 && n <= 5;
+    const validComment = (s) => typeof s === "string" && s.trim() !== "" && !/^[\d\s.,€$-]+$/.test(s.trim());
+    for (const raw of reservations) {
+      const r = {
+        ...raw,
+        guestRating: validRating(raw.guestRating) ? raw.guestRating : void 0,
+        guestComment: validComment(raw.guestComment) ? raw.guestComment : void 0,
+        hostRating: validRating(raw.hostRating) ? raw.hostRating : void 0,
+        hostComment: validComment(raw.hostComment) ? raw.hostComment : void 0
+      };
       if (r.guestRating || r.guestComment || r.hostRating || r.hostComment) {
         const src = r.bookingSource || "direct";
         const platformInfo = REVIEW_PLATFORMS.find((p) => p.id === src);
@@ -8022,7 +8031,7 @@ var DomaineAppBundle = (() => {
   }
   function getAppsScriptCode() {
     return `// =========================================================================
-// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V15)
+// CONNECTEUR UNIVERSEL GOOGLE SHEETS & PLANNING - DOMAINE SYLVARIA (V16)
 // =========================================================================
 // Instructions d'installation (1 minute) :
 // 1. Dans votre Google Sheet, allez dans : Extensions > Apps Script
@@ -8087,7 +8096,11 @@ var DomaineAppBundle = (() => {
 // m\xE9nage, commandes de repas pour les personnes autoris\xE9es au module Repas) vont \xE0 son adresse.
 // Module Repas partageable : une personne autoris\xE9e re\xE7oit les commandes et, avec son lien d'acc\xE8s, les voit
 // et les confirme (ni contact, ni montant du s\xE9jour).
-// Mise \xE0 jour depuis la V10, V11, V12 ou V13 : collez TOUT ce code (jusqu'\xE0 la derni\xE8re ligne), puis
+// V16 : (1) demande d'avis AUTOMATIQUE par e-mail apr\xE8s le s\xE9jour, facultative (Avis clients > R\xE9glages > Demandes de
+// retour) : une seule fois par s\xE9jour, aux s\xE9jours termin\xE9s depuis la date d'activation, \xE0 l'heure choisie, via le
+// d\xE9clencheur horaire d\xE9j\xE0 install\xE9 (aucune nouvelle autorisation) ; (2) la lecture de secours des onglets ne prend plus
+// de colonnes \xAB au rang \xBB pour les notes et commentaires (un montant pouvait se retrouver dans la case avis).
+// Mise \xE0 jour depuis la V10 \xE0 V15 : collez TOUT ce code (jusqu'\xE0 la derni\xE8re ligne), puis
 // D\xE9ployer > G\xE9rer les d\xE9ploiements > crayon > Nouvelle version > D\xE9ployer (aucune nouvelle autorisation).
 // =========================================================================
 
@@ -8515,10 +8528,10 @@ function doGet(e) {
               date: formatDateStr(cIn >= 0 ? r[cIn] : r[2]),
               roomId: mapRoom(cRoom >= 0 ? r[cRoom] : r[5]),
               authorName: String(cName >= 0 ? r[cName] : (r[6] || "Auteur")),
-              guestRating: parseNum(cGuestRating >= 0 ? r[cGuestRating] : r[26]) || 5,
-              guestComment: String(cGuestComment >= 0 ? r[cGuestComment] : (r[27] || "")),
-              hostRating: (cHostRating >= 0 && r[cHostRating] !== "") ? parseNum(r[cHostRating]) : undefined,
-              hostComment: String(cHostComment >= 0 ? r[cHostComment] : (r[29] || "")),
+              guestRating: cleanRating_(cGuestRating >= 0 ? r[cGuestRating] : "") || 5,
+              guestComment: cleanComment_(cGuestComment >= 0 ? r[cGuestComment] : ""),
+              hostRating: (cHostRating >= 0 && r[cHostRating] !== "") ? cleanRating_(r[cHostRating]) : undefined,
+              hostComment: cleanComment_(cHostComment >= 0 ? r[cHostComment] : ""),
               source: String(cSource >= 0 ? r[cSource] : (r[14] || "Avis")),
               sourceDetails: String(cNotes >= 0 ? r[cNotes] : (r[32] || ""))
             });
@@ -8579,10 +8592,11 @@ function doGet(e) {
           var visitReason = String(cVisitReason >= 0 ? r[cVisitReason] : (r[8] || ""));
           var notes = String(cNotes >= 0 ? r[cNotes] : (r[32] || ""));
 
-          var hostRatingVal = (cHostRating >= 0 && r[cHostRating] !== "") ? parseNum(r[cHostRating]) : (r[28] !== undefined && r[28] !== "" && r[28] !== "-" ? parseNum(r[28]) : undefined);
-          var hostCommentVal = String(cHostComment >= 0 ? r[cHostComment] : (r[29] || ""));
-          var guestRatingVal = (cGuestRating >= 0 && r[cGuestRating] !== "") ? parseNum(r[cGuestRating]) : (r[26] !== undefined && r[26] !== "" && r[26] !== "-" ? parseNum(r[26]) : undefined);
-          var guestCommentVal = String(cGuestComment >= 0 ? r[cGuestComment] : (r[27] || ""));
+          // V16 : notes et commentaires lus seulement d'apr\xE8s leur en-t\xEAte, et seulement s'ils sont plausibles
+          var hostRatingVal = (cHostRating >= 0 && r[cHostRating] !== "") ? cleanRating_(r[cHostRating]) : undefined;
+          var hostCommentVal = cleanComment_(cHostComment >= 0 ? r[cHostComment] : "");
+          var guestRatingVal = (cGuestRating >= 0 && r[cGuestRating] !== "") ? cleanRating_(r[cGuestRating]) : undefined;
+          var guestCommentVal = cleanComment_(cGuestComment >= 0 ? r[cGuestComment] : "");
 
           var touristTaxVal = parseNum(cTouristTax >= 0 ? r[cTouristTax] : 0);
           var taxStatusStr = String(cTouristTaxStatus >= 0 ? r[cTouristTaxStatus] : "").toLowerCase();
@@ -8777,7 +8791,7 @@ function doPost(e) {
 // V10 : ACC\xC8S D\xC9DI\xC9 DES PERSONNES, PHOTOS (GOOGLE DRIVE), RAPPELS PAR E-MAIL, CL\xC9
 // =========================================================================
 
-var CONNECTOR_VERSION = 15;
+var CONNECTOR_VERSION = 16;
 var ADMIN_KEY_PROP = "CLE_ADMIN";
 var PHOTO_FOLDER_PROP = "DOSSIER_PHOTOS_MENAGE";
 var PHOTO_FOLDER_NAME = "Domaine Sylvaria - Photos m\xE9nage";
@@ -8806,6 +8820,17 @@ function installerRappelsMenage() {
 function envoyerRappelsMenage() {
   var result = sendHousekeepingReminders_(false);
   Logger.log(JSON.stringify(result));
+  // V16 : demandes d'avis automatiques (m\xEAme d\xE9clencheur horaire)
+  try {
+    Logger.log(JSON.stringify(sendReviewRequests_(false)));
+  } catch(errReq) {
+    Logger.log("Demandes d'avis : " + errReq);
+  }
+}
+
+// \xC0 lancer \xE0 la main depuis l'\xE9diteur pour voir ce qui partirait, sans rien envoyer
+function essaiDemandesAvis() {
+  Logger.log(JSON.stringify(sendReviewRequests_(true)));
 }
 
 // Adresse compl\xE8te (avec la cl\xE9) \xE0 coller dans l'app si un appareil l'a perdue
@@ -10211,7 +10236,163 @@ function sendStayLink_(data) {
   return { status: "success", version: CONNECTOR_VERSION };
 }
 
-// ===== FIN DU CONNECTEUR (V15) : si cette ligne n'est pas tout en bas dans Apps Script, le code coll\xE9 est incomplet. =====
+// =========================================================================
+// V16 : DEMANDES D'AVIS AUTOMATIQUES APR\xC8S LE S\xC9JOUR (FACULTATIF) + NOTES PLAUSIBLES
+// =========================================================================
+
+var ONLINE_APP_URL_ = "https://elloodiielp.github.io/sylvaria/";
+var REVIEW_REQUEST_MAX_PER_RUN = 15;
+
+// Note du client : 1 \xE0 5, sinon rien (un montant n'est jamais une note)
+function cleanRating_(v) {
+  var n = parseFloat(String(v === undefined || v === null ? "" : v).replace(",", "."));
+  return (n >= 1 && n <= 5) ? n : undefined;
+}
+
+// Commentaire du client : un texte, jamais un simple nombre ou montant
+function cleanComment_(v) {
+  var s = String(v === undefined || v === null ? "" : v).trim();
+  return (!s || /^[\\d\\s.,\u20AC$-]+$/.test(s)) ? "" : s;
+}
+
+function greetName_(name) {
+  return String(name || "").split(/\\s*(?:&|\\bet\\b)\\s*/i).map(function(p) {
+    return p.trim().split(/\\s+/).filter(function(w) { return !/^[A-Z\xC0-\xDD]\\.?$/.test(w); }).join(" ");
+  }).filter(function(x) { return x; }).join(" et ");
+}
+
+// Remplace {voyageur}, {\xE9tablissement}\u2026 (signe inconnu laiss\xE9 tel quel, signe connu sans valeur retir\xE9)
+function fillTemplate_(text, values) {
+  var out = String(text || "").replace(/\\{([^{}]+)\\}/g, function(all, key) {
+    var k = String(key).toLowerCase().normalize("NFD").replace(/[\u0300-\u036F]/g, "").replace(/[\u2019'\`]/g, " ").trim().replace(/\\s+/g, "_");
+    return Object.prototype.hasOwnProperty.call(values, k) ? values[k] : all;
+  });
+  return out.split("\\n").map(function(l) { return l.replace(/[ \\t]+$/g, ""); }).join("\\n").replace(/\\n{3,}/g, "\\n\\n").trim();
+}
+
+function frShort_(iso) {
+  var p = String(iso).split("-");
+  return Number(p[2]) + "/" + p[1] + "/" + p[0];
+}
+
+// Lien de s\xE9jour du livret pour une r\xE9servation (cr\xE9\xE9 au besoin dans le jeu synchronis\xE9 \xAB mealStayLinks \xBB)
+function stayBookLink_(stores, settings, reservationId, nowIso) {
+  var pub = settings && settings.modules && settings.modules.welcomeBook && settings.modules.welcomeBook.settings && settings.modules.welcomeBook.settings.publication;
+  var mod = settings && settings.modules && settings.modules.welcomeBook;
+  if (!adminKey_() || !mod || !mod.enabled || !isObject_(pub) || pub.enabled !== true || textOf_(pub.publicId).length < 8) return "";
+  var m = /\\/macros\\/s\\/([A-Za-z0-9_-]+)\\//.exec(ScriptApp.getService().getUrl() || "");
+  if (!m) return "";
+  var entry = stores.mealStayLinks;
+  if (!entry || entry.kind !== "map") entry = { kind: "map", updatedAt: "", value: {}, times: {}, deleted: {} };
+  entry.value = isObject_(entry.value) ? entry.value : {};
+  entry.times = isObject_(entry.times) ? entry.times : {};
+  entry.deleted = isObject_(entry.deleted) ? entry.deleted : {};
+  var token = "";
+  for (var t in entry.value) {
+    if (isObject_(entry.value[t]) && String(entry.value[t].reservationId) === String(reservationId)) token = t;
+  }
+  if (!token) {
+    var alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    for (var i = 0; i < 18; i++) token += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    entry.value[token] = { reservationId: String(reservationId), createdAt: nowIso };
+    entry.times[token] = nowIso;
+    delete entry.deleted[token];
+    entry.updatedAt = nowIso;
+    stores.mealStayLinks = entry;
+  }
+  return ONLINE_APP_URL_ + "?livret=" + encodeURIComponent(pub.publicId) + "&s=" + encodeURIComponent(m[1]) + "&r=" + encodeURIComponent(token);
+}
+
+// Envoie la demande d'avis aux s\xE9jours termin\xE9s (si le r\xE9glage automatique est actif). dry = true : liste sans envoyer.
+function sendReviewRequests_(dry) {
+  var lock = null;
+  if (!dry) {
+    lock = LockService.getScriptLock();
+    if (!lock.tryLock(25000)) return { status: "success", sent: 0, skipped: "Une synchronisation est en cours." };
+  }
+  try {
+    var ss = getTargetSpreadsheet();
+    var store = loadAppData_(ss);
+    var stores = (store && store.appStores) || {};
+    var settings = stores.settings || {};
+    var mod = settings.modules && settings.modules.reviews;
+    var rq = mod && mod.settings && mod.settings.requests;
+    if ((mod && mod.enabled === false) || !isObject_(rq) || rq.enabled === false || rq.auto !== true) return { status: "success", sent: 0, skipped: "Envoi automatique d\xE9sactiv\xE9." };
+    var since = textOf_(rq.autoSince);
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(since)) return { status: "success", sent: 0, skipped: "Date d'activation absente : r\xE9enregistrez les r\xE9glages des avis." };
+    var now = new Date();
+    var today = Utilities.formatDate(now, "Europe/Paris", "yyyy-MM-dd");
+    var hour = Number(Utilities.formatDate(now, "Europe/Paris", "H"));
+    var wanted = rq.autoHour === undefined ? 10 : Number(rq.autoHour);
+    if (!dry && hour < wanted) return { status: "success", sent: 0, skipped: "Pas encore l'heure." };
+    var delay = Math.max(0, Number(rq.delayDays) || 0);
+    var windowDays = Math.max(1, Number(rq.windowDays) || 30);
+    var template = textOf_(rq.template);
+    var meta = stores.reviewMeta;
+    if (!meta || meta.kind !== "map") meta = { kind: "map", updatedAt: "", value: {}, times: {}, deleted: {} };
+    meta.value = isObject_(meta.value) ? meta.value : {};
+    meta.times = isObject_(meta.times) ? meta.times : {};
+    meta.deleted = isObject_(meta.deleted) ? meta.deleted : {};
+
+    var list = [];
+    listOf_(store && store.reservationsList).forEach(function(r) {
+      if (!r || !r.id || !r.checkOut || r.isBlocked || r.reservationStatus === "cancelled" || r.icalCancelled) return;
+      if (!validEmail_(r.guestEmail) || !textOf_(r.guestName).trim()) return;
+      if (String(r.checkOut) < since) return;
+      var from = isoShift_(String(r.checkOut), delay);
+      if (today < from || today > isoShift_(from, windowDays)) return;
+      if (cleanRating_(r.guestRating) !== undefined || cleanComment_(r.guestComment)) return;
+      if (meta.value["req:" + r.id]) return;
+      list.push(r);
+    });
+    list = list.slice(0, REVIEW_REQUEST_MAX_PER_RUN);
+    if (dry) {
+      return { status: "success", sent: 0, test: true, wouldSend: list.map(function(r) { return r.guestName + " <" + r.guestEmail + "> (d\xE9part " + r.checkOut + ")"; }) };
+    }
+    if (list.length === 0) return { status: "success", sent: 0 };
+
+    var est = settings.establishment || {};
+    var estName = textOf_(est.name) || "Domaine Sylvaria";
+    var reviewUrl = textOf_(rq.reviewUrl).trim();
+    var replyTo = establishmentEmail_(settings);
+    var nowIso = now.toISOString();
+    var sent = [];
+    var errors = [];
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      try {
+        var link = /\\{lien_livret\\}/.test(template) ? stayBookLink_(stores, settings, r.id, nowIso) : "";
+        var text = fillTemplate_(template, {
+          voyageur: greetName_(r.guestName), prenom: greetName_(r.guestName).split(/\\s+/)[0] || "", etablissement: estName, chambre: "", note: "",
+          sejour: "du " + frShort_(r.checkIn) + " au " + frShort_(r.checkOut), lien_livret: link, lien_avis: reviewUrl
+        });
+        var html = "<div style=\\"font-family:Arial,sans-serif;font-size:14px;color:#171717;max-width:560px\\">" +
+          esc_(text).replace(/\\n/g, "<br>").replace(/(https:\\/\\/[^\\s<]+)/g, "<a href=\\"$1\\" style=\\"color:#325032\\">$1</a>") + "</div>";
+        var mail = { to: String(r.guestEmail).trim(), subject: estName + " : votre avis sur votre s\xE9jour", body: text, htmlBody: html, name: estName };
+        if (replyTo) mail.replyTo = replyTo;
+        MailApp.sendEmail(mail);
+        meta.value["req:" + r.id] = { kind: "request", sentAt: nowIso, channel: "auto", updatedAt: nowIso };
+        meta.times["req:" + r.id] = nowIso;
+        delete meta.deleted["req:" + r.id];
+        sent.push(r.guestName);
+      } catch(errOne) {
+        errors.push(r.guestName + " : " + errOne);
+        break; // quota ou adresse refus\xE9e : on r\xE9essaiera \xE0 la prochaine heure, sans doublon
+      }
+    }
+    if (sent.length > 0) {
+      meta.updatedAt = nowIso;
+      stores.reviewMeta = meta;
+      store.appStores = stores;
+      saveAppData_(ss, store);
+    }
+    return { status: errors.length ? "partial" : "success", version: CONNECTOR_VERSION, sent: sent.length, recipients: sent, errors: errors };
+  } finally {
+    if (lock) lock.releaseLock();
+  }
+}
+
+// ===== FIN DU CONNECTEUR (V16) : si cette ligne n'est pas tout en bas dans Apps Script, le code coll\xE9 est incomplet. =====
 `;
   }
 
@@ -32075,7 +32256,7 @@ Cliquer pour modifier le tarif` : void 0,
     sent: { label: "Demande envoy\xE9e", cls: "bg-emerald-100 text-emerald-800" },
     reviewed: { label: "Avis re\xE7u", cls: "bg-sky-100 text-sky-900" }
   };
-  var CHANNEL_LABEL = { email: "messagerie", sms: "SMS", whatsapp: "WhatsApp", copy: "copie du texte" };
+  var CHANNEL_LABEL = { email: "messagerie", sms: "SMS", whatsapp: "WhatsApp", copy: "copie du texte", auto: "e-mail automatique" };
   var Row3 = ({
     c,
     rv,
@@ -32246,7 +32427,9 @@ Cliquer pour modifier le tarif` : void 0,
           ] }),
           " apr\xE8s le d\xE9part, pendant ",
           rv.requests.windowDays,
-          " jours. Rien n'est envoy\xE9 automatiquement : vous ouvrez le message dans votre messagerie, votre t\xE9l\xE9phone ou WhatsApp, vous le relisez, puis vous l'envoyez vous-m\xEAme (une seule demande par s\xE9jour)."
+          " jours.",
+          " ",
+          rv.requests.auto ? `L'envoi automatique par e-mail est activ\xE9 (vers ${rv.requests.autoHour} h, depuis le ${rv.requests.autoSince ? formatDateFr(rv.requests.autoSince) : "jour de l'activation"}) : les s\xE9jours avec une adresse e-mail re\xE7oivent la demande sans intervention. Pour les autres, ou par SMS / WhatsApp, utilisez les boutons.` : "Rien n'est envoy\xE9 automatiquement : vous ouvrez le message dans votre messagerie, votre t\xE9l\xE9phone ou WhatsApp, vous le relisez, puis vous l'envoyez vous-m\xEAme (une seule demande par s\xE9jour)."
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("p", { children: [
           "Le texte se modifie dans",
@@ -32328,6 +32511,11 @@ Cliquer pour modifier le tarif` : void 0,
       if (!draft.themes.some((t) => t.active)) return onToast("Gardez au moins un sujet actif.");
       saveReviews(settings, draft, "Avis clients : r\xE9glages enregistr\xE9s.");
       onToast("R\xE9glages des avis enregistr\xE9s.");
+      if (draft.requests.auto && !rv.requests.auto) {
+        connectorInfo(void 0, true).then((info) => {
+          if (info.version < 16) onToast("L'envoi automatique demande la mise \xE0 jour du connecteur Google (V16) : Param\xE9trage > Google Sheets, copiez TOUT le nouveau code et d\xE9ployez une nouvelle version.");
+        }).catch(() => onToast("Connecteur Google injoignable : l'envoi automatique ne fonctionnera qu'une fois le connecteur V16 en place."));
+      }
     };
     const card2 = "bg-white border border-neutral-200 rounded-2xl p-4 space-y-3";
     const h = "font-serif font-bold text-base text-neutral-900";
@@ -32427,6 +32615,32 @@ Cliquer pour modifier le tarif` : void 0,
         /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(Field, { label: "D\xE9lai apr\xE8s le d\xE9part", hint: "Le s\xE9jour est propos\xE9 \xE0 partir de ce jour.", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(NumberInput, { value: draft.requests.delayDays, onChange: (v) => set({ requests: { ...draft.requests, delayDays: Math.max(0, Math.min(60, Math.round(v || 0))) } }), suffix: "jours" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(Field, { label: "Propos\xE9 pendant", hint: "Au-del\xE0, la demande n'est plus propos\xE9e.", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(NumberInput, { value: draft.requests.windowDays, onChange: (v) => set({ requests: { ...draft.requests, windowDays: Math.max(1, Math.min(180, Math.round(v || 1))) } }), suffix: "jours" }) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("div", { className: "p-3 rounded-xl border border-neutral-200 space-y-2", "data-auto-requests": true, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(
+              Toggle,
+              {
+                checked: draft.requests.auto,
+                onChange: (auto) => set({ requests: { ...draft.requests, auto, autoSince: auto ? draft.requests.autoSince || todayIso() : draft.requests.autoSince } }),
+                label: "Envoi automatique par e-mail"
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("span", { className: "text-xs font-semibold text-neutral-800", children: "Envoyer la demande automatiquement par e-mail" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("p", { className: "text-[11px] text-neutral-500", children: "Le connecteur Google (version 16 ou plus) envoie l'e-mail \xE0 l'adresse de la r\xE9servation, une seule fois par s\xE9jour, depuis votre compte Google, \xE0 l'heure choisie. Seuls les s\xE9jours termin\xE9s \xE0 partir de la date d'activation sont concern\xE9s, jamais les anciens. D\xE9sactiv\xE9 : rien ne part sans vous. Il faut enregistrer vers Google (\xAB 2. Enregistrer \xBB) pour que le connecteur connaisse ce r\xE9glage." }),
+          draft.requests.auto && /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(Field, { label: "Heure d'envoi (heure de Paris)", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(NumberInput, { value: draft.requests.autoHour, onChange: (v) => set({ requests: { ...draft.requests, autoHour: Math.max(0, Math.min(23, Math.round(v || 0))) } }), suffix: "h" }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(Field, { label: "S\xE9jours termin\xE9s \xE0 partir du", hint: "Les s\xE9jours termin\xE9s avant cette date ne re\xE7oivent rien.", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(
+              "input",
+              {
+                type: "date",
+                value: draft.requests.autoSince,
+                onChange: (e) => set({ requests: { ...draft.requests, autoSince: e.target.value } }),
+                className: "w-full py-2 px-2.5 text-xs bg-neutral-50 border border-neutral-200 rounded-lg"
+              }
+            ) })
+          ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(Field, { label: "Lien pour laisser un avis (facultatif)", hint: "Adresse de votre fiche Google, TripAdvisor\u2026 Remplace {lien_avis} dans le message.", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(TextInput, { value: draft.requests.reviewUrl, onChange: (reviewUrl) => set({ requests: { ...draft.requests, reviewUrl } }), placeholder: "https://" }) }),
         /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(Field, { label: "Texte du message", hint: "Signes : {voyageur} {pr\xE9nom} {\xE9tablissement} {s\xE9jour} {lien_avis} {lien_livret} (lien du livret propre au s\xE9jour, si publi\xE9).", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(TextArea, { value: draft.requests.template, rows: 8, onChange: (template) => set({ requests: { ...draft.requests, template } }) }) })
