@@ -21473,6 +21473,7 @@ ${body}
   var TIME = ["none", "month", "quarter", "year"];
   var WITH_ROOM = [...TIME, "room"];
   var RES_DIMS = [...WITH_ROOM, "source", "origin", "payment"];
+  var TASK_DIMS = [...WITH_ROOM, "taskStatus", "assignee", "taskMoment"];
   var MEAL_DIMS = [...TIME, "room", "moment"];
   var G_RES = "S\xE9jours et r\xE9servations";
   var G_EXP = "D\xE9penses";
@@ -21480,8 +21481,9 @@ ${body}
   var G_REV = "Avis clients";
   var G_INV = "Factures";
   var G_MEAL = "Commandes de repas (livret)";
+  var G_TASK = "M\xE9nage et pr\xE9paration";
   var G_MIX = "R\xE9sultats combin\xE9s";
-  var GROUP_ORDER = [G_RES, G_EXP, G_ASSET, G_REV, G_INV, G_MEAL, G_MIX];
+  var GROUP_ORDER = [G_RES, G_EXP, G_ASSET, G_REV, G_INV, G_MEAL, G_TASK, G_MIX];
   var res = (id, label, field, unit = "money", hint) => ({
     id,
     label,
@@ -21531,6 +21533,18 @@ ${body}
     { id: "meal_all", label: "Commandes re\xE7ues (tous statuts)", group: G_MEAL, unit: "count", dims: [...MEAL_DIMS, "orderStatus"], kind: "sum", ds: "meal", field: "all", hint: "\xC0 regrouper \xAB par statut de commande \xBB pour voir les annulations et refus" },
     { id: "meal_items", label: "Produits command\xE9s (quantit\xE9s)", group: G_MEAL, unit: "count", dims: [...TIME, "moment", "product"], kind: "sum", ds: "mealItem", field: "qty", hint: "Plats et boissons command\xE9s, enfants compris" },
     { id: "meal_items_amount", label: "Montant indicatif par produit", group: G_MEAL, unit: "money", dims: [...TIME, "moment", "product"], kind: "sum", ds: "mealItem", field: "amount" },
+    { id: "task_total", label: "T\xE2ches de m\xE9nage", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "count", hint: "Jour pr\xE9vu dans la p\xE9riode ; hors t\xE2ches \xE9cart\xE9es (\xAB pas n\xE9cessaire \xBB)" },
+    { id: "task_done", label: "T\xE2ches termin\xE9es", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "done" },
+    { id: "task_open", label: "T\xE2ches non termin\xE9es", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "open" },
+    { id: "task_late", label: "T\xE2ches en retard", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "late", hint: "Non termin\xE9es dont l'\xE9ch\xE9ance est pass\xE9e, \xE0 l'instant pr\xE9sent" },
+    { id: "task_blocked", label: "T\xE2ches bloqu\xE9es", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "blocked" },
+    { id: "task_review", label: "T\xE2ches \xE0 contr\xF4ler", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "review" },
+    { id: "task_unassigned", label: "T\xE2ches non attribu\xE9es", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "unassigned" },
+    { id: "task_rate", label: "Taux de t\xE2ches termin\xE9es", group: G_TASK, unit: "percent", dims: TASK_DIMS, kind: "ratio", ds: "task", num: "done", den: "count", scale: 100 },
+    { id: "task_checks", label: "Cases de check-list coch\xE9es", group: G_TASK, unit: "percent", dims: TASK_DIMS, kind: "ratio", ds: "task", num: "chkDone", den: "chkTotal", scale: 100 },
+    { id: "task_minutes", label: "Temps estim\xE9 (minutes)", group: G_TASK, unit: "count", dims: TASK_DIMS, kind: "sum", ds: "task", field: "minutes", hint: "Dur\xE9es estim\xE9es saisies dans le module M\xE9nage" },
+    { id: "task_issues", label: "Signalements (objets oubli\xE9s, d\xE9g\xE2ts, pannes, anomalies)", group: G_TASK, unit: "count", dims: [...WITH_ROOM, "issueType"], kind: "sum", ds: "issue", field: "count", hint: "Dat\xE9 du jour de la t\xE2che" },
+    { id: "task_issues_open", label: "Signalements en cours", group: G_TASK, unit: "count", dims: [...WITH_ROOM, "issueType"], kind: "sum", ds: "issue", field: "open" },
     { id: "mix_net", label: "Marge des s\xE9jours \u2212 d\xE9penses saisies", group: G_MIX, unit: "money", dims: WITH_ROOM, kind: "combo", plus: ["res_margin"], minus: ["exp_total"], hint: "Estimation de pilotage, pas un b\xE9n\xE9fice comptable" },
     { id: "mix_net_depr", label: "Marge des s\xE9jours \u2212 d\xE9penses \u2212 amortissements", group: G_MIX, unit: "money", dims: WITH_ROOM, kind: "combo", plus: ["res_margin"], minus: ["exp_total", "asset_depr"] },
     { id: "mix_cash_gap", label: "Chiffre d'affaires \u2212 d\xE9penses saisies", group: G_MIX, unit: "money", dims: WITH_ROOM, kind: "combo", plus: ["res_revenue"], minus: ["exp_total"] }
@@ -21551,11 +21565,15 @@ ${body}
     { id: "platform", label: "Par source des avis" },
     { id: "moment", label: "Par repas (petit-d\xE9jeuner, d\xEEner\u2026)" },
     { id: "orderStatus", label: "Par statut de commande" },
-    { id: "product", label: "Par produit command\xE9" }
+    { id: "product", label: "Par produit command\xE9" },
+    { id: "taskStatus", label: "Par statut de t\xE2che de m\xE9nage" },
+    { id: "assignee", label: "Par personne (m\xE9nage)" },
+    { id: "taskMoment", label: "Par moment (avant arriv\xE9e / apr\xE8s d\xE9part)" },
+    { id: "issueType", label: "Par type de signalement" }
   ];
   var isTimeDim = (d) => d === "month" || d === "quarter" || d === "year";
-  function makeContext(reservations, expenses2, assets2, externalReviews, settings, mealOrders = []) {
-    return { reservations, expenses: expenses2, assets: assets2, externalReviews, mealOrders, settings, registry: readInvoiceRegistry(), capacityCache: /* @__PURE__ */ new Map() };
+  function makeContext(reservations, expenses2, assets2, externalReviews, settings, mealOrders = [], housekeeping = null) {
+    return { reservations, expenses: expenses2, assets: assets2, externalReviews, mealOrders, housekeeping, settings, registry: readInvoiceRegistry(), capacityCache: /* @__PURE__ */ new Map() };
   }
   var DAY = 864e5;
   var isoAdd = (iso, days) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
@@ -21656,6 +21674,37 @@ ${body}
       const paid = inv.paymentState === "acquittee" || inv.paymentState === void 0 && r.paymentStatus === "paid";
       rows.push({ ds: "inv", month, payment: paid ? "invPaid" : "invUnpaid", v: { count: 1, total } });
     });
+    if (ctx.housekeeping && monthKeys.length > 0) {
+      const { hk, stored } = ctx.housekeeping;
+      const sorted = [...monthKeys].sort();
+      const from = `${sorted[0]}-01`;
+      const to = lastDayOfMonth(sorted[sorted.length - 1]);
+      const now = /* @__PURE__ */ new Date();
+      buildTasks({ settings: ctx.settings, hk, reservations: ctx.reservations, stored, from, to }).filter((t) => !t.dismissed && months.has((t.date || "").slice(0, 7))).forEach((t) => {
+        const month = t.date.slice(0, 7);
+        const kind = statusOf(hk, t.statusId).kind;
+        const list2 = hk.checklists.find((c) => c.id === t.checklistId);
+        const done = isDone(hk, t);
+        const base = { month, room: t.zoneId, taskStatus: t.statusId, assignee: t.assigneeId || "", taskMoment: t.moment || "other" };
+        rows.push({
+          ds: "task",
+          ...base,
+          v: {
+            count: 1,
+            done: done ? 1 : 0,
+            open: done ? 0 : 1,
+            late: isLate(hk, t, now) ? 1 : 0,
+            blocked: kind === "blocked" ? 1 : 0,
+            review: kind === "review" ? 1 : 0,
+            unassigned: !done && !t.assigneeId ? 1 : 0,
+            minutes: t.estimatedMinutes || 0,
+            chkTotal: list2 ? list2.items.length : 0,
+            chkDone: list2 ? list2.items.filter((i) => t.checks[i.id]).length : 0
+          }
+        });
+        t.issues.forEach((i) => rows.push({ ds: "issue", month, room: t.zoneId, issueType: i.type, v: { count: 1, open: i.resolved ? 0 : 1 } }));
+      });
+    }
     const roomOfReservation = new Map(ctx.reservations.map((r) => [String(r.id), r.roomId]));
     ctx.mealOrders.forEach((o) => {
       const month = (o.date || "").slice(0, 7);
@@ -21888,6 +21937,14 @@ ${body}
         return row.orderStatus ?? "";
       case "product":
         return row.product ?? "";
+      case "taskStatus":
+        return row.taskStatus ?? "";
+      case "assignee":
+        return row.assignee ?? "";
+      case "taskMoment":
+        return row.taskMoment ?? "";
+      case "issueType":
+        return row.issueType ?? "";
     }
   }
   function aggregate(rows, m, dim) {
@@ -21943,7 +22000,7 @@ ${body}
         return key;
       case "room": {
         if (!key) return "Tout l'\xE9tablissement";
-        return [...settings.accommodations, ...settings.resources, ...settings.services].find((x) => x.id === key)?.name || key;
+        return [...settings.accommodations, ...settings.resources, ...settings.services].find((x) => x.id === key)?.name || getHousekeepingSettings(settings).zones.find((z) => z.id === key)?.name || key;
       }
       case "source":
       case "platform": {
@@ -21956,6 +22013,14 @@ ${body}
         return { paid: "Pay\xE9", deposit: "Acompte vers\xE9", pending: "En attente", invPaid: "Acquitt\xE9e", invUnpaid: "\xC0 r\xE9gler" }[key] || key || "Non renseign\xE9";
       case "category":
         return prof.categories.find((c) => c.id === key)?.name || "Cat\xE9gorie supprim\xE9e";
+      case "taskStatus":
+        return getHousekeepingSettings(settings).statuses.find((s) => s.id === key)?.label || key;
+      case "assignee":
+        return !key ? "Non attribu\xE9e" : key === "admin" ? "Administratrice" : settings.people.find((p) => p.id === key)?.name || key;
+      case "taskMoment":
+        return MOMENT_LOOKS[key]?.label || key;
+      case "issueType":
+        return ISSUE_LABELS[key] || key;
       case "moment":
         return key || "Non renseign\xE9";
       case "product":
@@ -22056,6 +22121,9 @@ ${body}
     w("R\xE9sultats par h\xE9bergement", "table", ["res_revenue", "res_nights", "res_occupancy", "res_revpar"], "room", "view", 2),
     w("Repas command\xE9s par repas", "bar", ["meal_orders", "meal_covers"], "moment", "thisYear"),
     w("Produits les plus command\xE9s", "table", ["meal_items", "meal_items_amount"], "product", "last12"),
+    w("T\xE2ches de m\xE9nage : avancement", "card", ["task_total", "task_done", "task_late", "task_blocked", "task_rate"], "none", "view"),
+    w("T\xE2ches de m\xE9nage par mois", "bar", ["task_total", "task_done"], "month", "thisYear", 2),
+    w("Signalements par type", "donut", ["task_issues"], "issueType", "last12"),
     w("Notes des voyageurs par source", "bar", ["rev_avg"], "platform", "last12")
   ];
   function allowedDims(kind, measureIds) {
@@ -22073,7 +22141,13 @@ ${body}
     const [isNew, setIsNew] = (0, import_react38.useState)(false);
     const mealsOn = isModuleEnabled("meals", settings);
     const { orders: mealOrders, at: ordersAt } = useMealOrders(mealsOn);
-    const ctx = (0, import_react38.useMemo)(() => makeContext(reservations, expenses2, assets2, externalReviews, settings, mealOrders), [reservations, expenses2, assets2, externalReviews, settings, mealOrders]);
+    const storedTasks = useStoredTasks();
+    const housekeepingOn = isModuleEnabled("housekeeping", settings);
+    const housekeeping = (0, import_react38.useMemo)(() => housekeepingOn ? { hk: getHousekeepingSettings(settings), stored: storedTasks } : null, [housekeepingOn, settings, storedTasks]);
+    const ctx = (0, import_react38.useMemo)(
+      () => makeContext(reservations, expenses2, assets2, externalReviews, settings, mealOrders, housekeeping),
+      [reservations, expenses2, assets2, externalReviews, settings, mealOrders, housekeeping]
+    );
     const cache2 = (0, import_react38.useMemo)(() => /* @__PURE__ */ new Map(), [ctx]);
     const run = (widget) => {
       try {
@@ -22146,7 +22220,8 @@ ${body}
           ".",
           " ",
           /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", onClick: () => fetchMealOrders().then(() => onToast("Commandes actualis\xE9es.")).catch((e) => onToast(e.message)), className: "underline font-semibold cursor-pointer", children: "Actualiser" })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { className: "block mt-1", children: "Les donn\xE9es de commandes de repas demandent le module Repas (Param\xE9trage, rubrique Modules)." })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { className: "block mt-1", children: "Les donn\xE9es de commandes de repas demandent le module Repas (Param\xE9trage, rubrique Modules)." }),
+        !housekeepingOn && /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { className: "block mt-1", children: "Les donn\xE9es du m\xE9nage demandent le module M\xE9nage et pr\xE9paration." })
       ] }),
       draft && /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "bg-white border border-sy-cad7cd rounded-2xl p-4 space-y-3 shadow-xs", children: [
         /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("h3", { className: "font-serif font-bold text-base text-neutral-900", children: isNew ? "Nouvelle carte ou graphique" : "Modifier" }),
