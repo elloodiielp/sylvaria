@@ -1716,7 +1716,7 @@ var DomaineAppBundle = (() => {
     return [
       p("ph", "pH", "", 6.9, 7.4),
       p("chlorine", "Chlore libre", "mg/L", 1, 3),
-      p("tac", "TAC", "\xB0f", 80, 120),
+      p("tac", "TAC", "mg/L", 80, 120),
       p("cya", "CYA (stabilisant)", "mg/L", 20, 50),
       p("phosphate", "Phosphate", "\xB5g/L", null, 100),
       p("temp", "Temp\xE9rature de l'eau", "\xB0C", null, null)
@@ -1805,6 +1805,7 @@ var DomaineAppBundle = (() => {
     cleaning: "Nettoyage",
     filterState: "\xC9tat du filtre",
     filterWash: "Lavage du filtre",
+    photos: "Photos",
     action: "Traitement",
     comment: "Commentaire",
     status: "Statut",
@@ -36794,6 +36795,8 @@ Cliquer pour modifier le tarif` : void 0,
     const [e, setE] = (0, import_react72.useState)(initial);
     const set = (p) => setE((x) => ({ ...x, ...p }));
     const bad = outOfRange(e, pool);
+    const measured = pool.params.filter((p) => p.active && (p.min !== null || p.max !== null) && e.values[p.id] !== null && e.values[p.id] !== void 0);
+    const suggestion = bad.length > 0 ? "nonconform" : measured.length > 0 ? "conform" : null;
     const save = () => {
       if (!e.date) return onToast("Indiquez la date du relev\xE9.");
       const hasData = Object.values(e.values).some((v) => v !== null && v !== void 0) || Object.values(e.products).some((v) => v) || e.action.trim() || e.comment.trim() || e.cleaning.trim() || e.visual.trim();
@@ -36845,13 +36848,30 @@ Cliquer pour modifier le tarif` : void 0,
         /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h4", { className: "text-xs font-bold text-neutral-700 mb-1.5", children: "Produits ajout\xE9s" }),
         /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3", children: pool.products.filter((p) => p.active).map((p) => /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: `${p.label}${p.unit ? ` (${p.unit})` : ""}`, children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(NumberInput, { value: e.products[p.id] ?? void 0, optional: true, onChange: (v) => set({ products: { ...e.products, [p.id]: v ?? null } }) }) }, p.id)) })
       ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
+        TaskPhotos,
+        {
+          taskId: e.id,
+          label: pool.name,
+          photos: e.photos || [],
+          onChange: (photos2, text) => {
+            set({ photos: photos2 });
+            onToast(text + " : pensez \xE0 enregistrer le relev\xE9.");
+          },
+          onToast
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { className: "text-[10px] text-neutral-400 -mt-1", children: "Joignez par exemple la photo de l'\xE9cran de votre appareil de mesure : elle reste avec le relev\xE9 pour v\xE9rification. Les valeurs se saisissent \xE0 la main (TA = TAC, CL = chlore)." }),
       /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: "Traitement ou intervention effectu\xE9e", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(TextArea, { value: e.action, onChange: (v) => set({ action: v }), rows: 2, placeholder: "Ex. : + chlore et acide" }) }),
       /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { className: "grid sm:grid-cols-2 gap-3", children: [
         /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: "Transparence ou observation visuelle", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(TextInput, { value: e.visual, onChange: (v) => set({ visual: v }) }) }),
         /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: "Nettoyage r\xE9alis\xE9", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(TextInput, { value: e.cleaning, onChange: (v) => set({ cleaning: v }) }) }),
         /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: "\xC9tat du filtre", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(TextInput, { value: e.filterState, onChange: (v) => set({ filterState: v }) }) }),
         /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: "Lavage ou remplacement du m\xE9dia filtrant", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(TextInput, { value: e.filterWash, onChange: (v) => set({ filterWash: v }) }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: "Statut du contr\xF4le", hint: "\xC0 choisir par vous : jamais \xAB conforme \xBB automatiquement.", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Select, { value: e.status, onChange: (v) => set({ status: v }), options: Object.keys(CHECK_STATUS_LABEL).map((s) => ({ value: s, label: CHECK_STATUS_LABEL[s] })) }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)(Field, { label: "Statut du contr\xF4le", hint: "\xC0 choisir par vous : l'application ne le change jamais seule.", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Select, { value: e.status, onChange: (v) => set({ status: v }), options: Object.keys(CHECK_STATUS_LABEL).map((s) => ({ value: s, label: CHECK_STATUS_LABEL[s] })) }),
+          suggestion && e.status === "tocheck" && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", onClick: () => set({ status: suggestion }), className: "mt-1.5 text-[11px] font-semibold underline text-sy-325032 cursor-pointer", "data-suggest-status": true, children: suggestion === "conform" ? "Toutes les mesures saisies sont dans vos seuils : marquer \xAB Conforme \xBB" : "Mesure hors seuil : marquer \xAB Non conforme \xBB" })
+        ] }),
         /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Field, { label: "Commentaire", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(TextInput, { value: e.comment, onChange: (v) => set({ comment: v }) }) })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { className: "text-[10px] text-neutral-400", children: "Enregistrer une mesure ne garantit pas la s\xE9curit\xE9 de la baignade." }),
@@ -37064,13 +37084,19 @@ Cliquer pour modifier le tarif` : void 0,
           /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("tbody", { children: entries.map((e) => {
             const bad = outOfRange(e, pool);
             return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("tr", { onClick: () => setForm({ kind: "entry", entry: e, isNew: false }), className: "cursor-pointer hover:bg-neutral-50 align-top", "data-entry-row": e.id, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("td", { className: "px-1.5 py-1.5 border-b border-neutral-100 whitespace-nowrap font-semibold", children: frDate(e.date) }),
+              /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("td", { className: "px-1.5 py-1.5 border-b border-neutral-100 whitespace-nowrap font-semibold", children: [
+                frDate(e.date),
+                !!e.photos?.length && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("span", { className: "ml-1 font-normal text-neutral-400", title: "Photos jointes", children: [
+                  "\u{1F4F7}",
+                  e.photos.length
+                ] })
+              ] }),
               activeParams.map((p) => {
                 const out = bad.some((b) => b.param.id === p.id);
                 return /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("td", { className: `px-1.5 py-1.5 border-b border-neutral-100 ${out ? e.anomalyResolved ? "text-amber-800 font-bold" : "text-red-700 font-bold bg-red-50" : ""}`, children: fmt(e.values[p.id]) }, p.id);
               }),
               activeProducts.map((p) => /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("td", { className: "px-1.5 py-1.5 border-b border-neutral-100 bg-sky-50/40", children: fmt(e.products[p.id]) }, p.id)),
-              /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("td", { className: "px-1.5 py-1.5 border-b border-neutral-100 min-w-[8rem]", children: e.action }),
+              /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("td", { className: "px-1.5 py-1.5 border-b border-neutral-100 min-w-[8rem]", children: [e.action, e.corrective].filter(Boolean).join(" \xB7 ") }),
               /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("td", { className: "px-1.5 py-1.5 border-b border-neutral-100", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(Chip2, { tone: statusTone(e.status), children: CHECK_STATUS_LABEL[e.status] }) })
             ] }, e.id);
           }) }),
