@@ -109,6 +109,10 @@
       input, select, textarea {
         font-size: 16px !important;
       }
+      /* Mois et année de l'en-tête : plus petits pour tenir en entier sur téléphone */
+      select.header-date-select {
+        font-size: 12px !important;
+      }
     }
     @media print {
       .no-print { display: none !important; }
@@ -13283,7 +13287,7 @@ function sendDocReminders_(test) {
               {
                 value: selectedMonth,
                 onChange: (e) => onMonthChange(Number(e.target.value)),
-                className: "bg-transparent text-neutral-900 font-serif font-bold text-[11px] sm:text-xs focus:outline-hidden cursor-pointer max-w-[68px] sm:max-w-none truncate px-0",
+                className: "header-date-select bg-transparent text-neutral-900 font-serif font-bold text-[11px] sm:text-xs focus:outline-hidden cursor-pointer max-w-[88px] sm:max-w-none truncate px-0",
                 children: MONTH_NAMES_FR.map((m, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("option", { value: idx, children: m }, m))
               }
             ),
@@ -13292,7 +13296,7 @@ function sendDocReminders_(test) {
               {
                 value: selectedYear,
                 onChange: (e) => onYearChange(Number(e.target.value)),
-                className: "bg-transparent text-neutral-900 font-mono font-bold text-[11px] sm:text-xs focus:outline-hidden cursor-pointer max-w-[48px] sm:max-w-none px-0",
+                className: "header-date-select bg-transparent text-neutral-900 font-mono font-bold text-[11px] sm:text-xs focus:outline-hidden cursor-pointer max-w-[48px] sm:max-w-none px-0",
                 children: years.map((y) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("option", { value: y, children: y }, y))
               }
             ),
@@ -38683,6 +38687,13 @@ Cliquer pour modifier le tarif` : void 0,
       else goTask({ kind: r.kind, id: r.id });
     };
     const openDocs = () => onOpenTab("adminDocs");
+    const go = (id) => {
+      setSection(id);
+      if (id !== "maintenance") setMaintFocus(null);
+      if (id !== "incidents") setIncidentFocus(null);
+      if (id !== "safety") setSafetyFocus(null);
+      if (id !== "guides") setGuideFocus(null);
+    };
     return /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("div", { className: "space-y-4", children: [
       /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("div", { className: "bg-white border border-neutral-200 rounded-2xl p-3 sm:p-4 space-y-3", children: [
         /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("div", { className: "flex flex-wrap items-start justify-between gap-2", children: /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("div", { className: "min-w-0", children: [
@@ -38690,9 +38701,30 @@ Cliquer pour modifier le tarif` : void 0,
             /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(ClipboardList, { className: "w-5 h-5 text-sy-325032" }),
             " Suivi de l'\xE9tablissement"
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("p", { className: "text-[11px] text-neutral-500", children: "Entretien, interventions, piscine, s\xE9curit\xE9, stocks et incidents au m\xEAme endroit. Outil de suivi : il ne garantit pas la conformit\xE9 r\xE9glementaire de l'\xE9tablissement." })
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("p", { className: "hidden sm:block text-[11px] text-neutral-500", children: "Entretien, interventions, piscine, s\xE9curit\xE9, stocks et incidents au m\xEAme endroit. Outil de suivi : il ne garantit pas la conformit\xE9 r\xE9glementaire de l'\xE9tablissement." }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("p", { className: "sm:hidden text-[11px] text-neutral-500", children: "Outil de suivi : sans garantie de conformit\xE9 r\xE9glementaire." })
         ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("nav", { className: "flex flex-wrap gap-1.5", "aria-label": "Rubriques du suivi de l'\xE9tablissement", children: visible.map((id) => {
+        /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("div", { className: "sm:hidden relative", "data-section-picker": true, children: [
+          (() => {
+            const CurIcon = ICONS[current2] || ClipboardList;
+            return /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(CurIcon, { className: "w-4 h-4 text-sy-325032 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" });
+          })(),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(
+            "select",
+            {
+              value: current2,
+              onChange: (e) => go(e.target.value),
+              "aria-label": "Rubrique du suivi de l'\xE9tablissement",
+              className: "w-full appearance-none pl-9 pr-9 py-3 bg-sy-f4f7f4 border border-sy-cad7cd rounded-xl font-bold text-neutral-900 cursor-pointer",
+              children: visible.map((id) => /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("option", { value: id, children: [
+                labels[id],
+                badge[id] ? ` (${badge[id]})` : ""
+              ] }, id))
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(ChevronDown, { className: "w-4 h-4 text-neutral-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("nav", { className: "hidden sm:flex flex-wrap gap-1.5", "aria-label": "Rubriques du suivi de l'\xE9tablissement", children: visible.map((id) => {
           const Icon2 = ICONS[id] || ClipboardList;
           const on = current2 === id;
           const n = badge[id];
@@ -38700,12 +38732,7 @@ Cliquer pour modifier le tarif` : void 0,
             "button",
             {
               type: "button",
-              onClick: () => {
-                setSection(id);
-                if (id !== "maintenance") setMaintFocus(null);
-                if (id !== "incidents") setIncidentFocus(null);
-                if (id !== "safety") setSafetyFocus(null);
-              },
+              onClick: () => go(id),
               className: `flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-xl whitespace-nowrap cursor-pointer shrink-0 ${on ? "bg-sy-325032 text-white font-bold shadow-xs" : "text-neutral-700 hover:bg-neutral-100"}`,
               "data-section": id,
               children: [
